@@ -2,12 +2,19 @@ from PySide.QtGui import *
 
 class DoubleSpinBoxWidget(QWidget):
     #constructor
-    def __init__(self,text,initVal,rangeVal,slot):
+    def __init__(self,text,initVal,rangeVal,slot,*args):
         super(DoubleSpinBoxWidget,self).__init__()
-        
+
+        digits = rangeVal[3]
+        decimals = rangeVal[4]
+
         #create widgets
         self.label = QLabel(text)
         self.spinbox = QDoubleSpinBox()
+        self.format_string = str('{0:'+'{0}.{1}f'.format(digits,decimals)+'}')
+        if args:
+            self.format_string = self.format_string + ' ' + args[0]
+        self.value_label = QLabel(self.format_string.format(initVal))
         
         #double spin box settings
         minVal = rangeVal[0]
@@ -16,23 +23,30 @@ class DoubleSpinBoxWidget(QWidget):
         self.spinbox.setMinimum(minVal)
         self.spinbox.setSingleStep(step)
         self.spinbox.setMaximum(maxVal)
-        decimals = 3
         self.spinbox.setDecimals(decimals)
-        
         self.spinbox.setValue(initVal)
+
+        self.set_value = initVal
         self.value = initVal
         
         #connections
-        self.spinbox.valueChanged.connect(self.value_changed)
+        self.spinbox.valueChanged.connect(self.set_value_changed)
         self.spinbox.valueChanged.connect(slot)        
         
         #add widgets to layout
         self.layout = QHBoxLayout()
         self.layout.addWidget(self.label)
+        self.layout.addStretch(1)
         self.layout.addWidget(self.spinbox)
+        self.layout.addStretch(1)
+        self.layout.addWidget(self.value_label)
         self.layout.setContentsMargins(0,0,0,0)
         
         self.setLayout(self.layout)
         
-    def value_changed(self):
-        self.value = self.spinbox.value()
+    def set_value_changed(self):
+        self.set_value = self.spinbox.value()
+        self.value_label.setText(self.format_string.format(self.set_value))
+
+    def value_changed(self,newVal):
+        self.value_label.setText(str(newVal))
