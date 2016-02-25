@@ -90,7 +90,7 @@ class GUIWindow(QMainWindow):
 
         self.current_list = []
         for i in range(4):
-            self.current_list.append(DoubleSpinBoxWidget('Current ' + str(i+1) ,0.1,[-2.5,0.05,2.5,5,3],self.set_current_changed,'A'))
+            self.current_list.append(DoubleSpinBoxWidget('Current ' + str(i+1) ,0.0,[-2.5,0.05,2.5,5,3],self.set_current_changed,'A'))
             vbox.addWidget(self.current_list[i])
 
         #add everything to group box
@@ -154,6 +154,7 @@ class GUIWindow(QMainWindow):
         self.thread_ps.power_is_set_off = True
 
     def ps_mode_changed(self,tab_index):
+        #turn off power supply on mode change
         if self.ps_cont_toggle.toggleFlag == 1:
                 self.ps_cont_toggle.toggle()
         #continuous mode
@@ -164,10 +165,12 @@ class GUIWindow(QMainWindow):
             print('pulse mode')
 
     def set_current_changed(self):
-        print('current changed'+str(self.current_list[0].set_value))
-        self.thread_ps.curr_1_value = self.current_list[0].set_value
-        self.thread_ps.curr_1_changed = True
-        self.thread_ps.i_1_refresh = 1
+        for i in range(4):
+            if self.thread_ps.current_value[i] != self.current_list[i].set_value:
+                self.thread_ps.current_value[i] = self.current_list[i].set_value
+                self.thread_ps.current_changed[i] = True
+                self.thread_ps.current_refresh[i] = 1
+                print('current '+ str(i) +' changed: '+str(self.current_list[i].set_value))
         return
 
     def position_changed(self):

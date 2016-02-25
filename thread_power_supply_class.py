@@ -27,23 +27,11 @@ class ThreadPowerSupply(QThread):
         self.send_cmd_ps_index = 1
         self.send_cmd_ps_text = '*IDN?'
 
+        self.current_value = [0.0,0.0,0.0,0.0]
 
-        #self.power_reset = False
-        self.curr_1_value = 0.001
-        self.curr_2_value = 0.001
-        self.curr_3_value = 0.001
-        self.curr_4_value = 0.001
+        self.current_changed = [True, True, True, True]
 
-        self.curr_1_changed = True
-        self.curr_2_changed = True
-        self.curr_3_changed = True
-        self.curr_4_changed = True
-
-        self.i_1_refresh = 1
-        self.i_2_refresh = 1
-        self.i_3_refresh = 1
-        self.i_4_refresh = 1
-
+        self.current_refresh = [1,1,1,1]
 
         time_old_temp = time.clock()
         time_old_update_I = time.clock()
@@ -75,35 +63,35 @@ class ThreadPowerSupply(QThread):
             #    self.power_reset = False
 # FIRST VERSION IMPLEMENTATION
             #if (time.clock()-time_old_update_I)>1.0:  # in case current value was not received by PSU
-            #    self.curr_1_changed = True
-            #    self.curr_2_changed = True
-            #    self.curr_3_changed = True
-            #    self.curr_4_changed = True
+            #    self.current_changed[0] = True
+            #    self.current_changed[1] = True
+            #    self.current_changed[2] = True
+            #    self.current_changed[3] = True
             #    time_old_update_I = time.clock()
 # SECOND VERSION IMPLEMENTATION
             if ((time.clock()-time_old_update_I)>1.0):
-                if  ((self.i_1_refresh==2) and (time.clock()-time_old_psu_1)>d_time ):  # in case current value was not received by PSU
-                    curr_1_str = str(self.curr_1_value)
+                if  ((self.current_refresh[0]==2) and (time.clock()-time_old_psu_1)>d_time ):  # in case current value was not received by PSU
+                    curr_1_str = str(self.current_value[0])
                     self.do_and_nowait('PW 1 '+curr_1_str+'\r\n')
-                    self.i_1_refresh = self.i_1_refresh +1
+                    self.current_refresh[0] = self.current_refresh[0] +1
                     time_old_psu_1 = time.clock()
 
-                if  ((self.i_2_refresh==2) and (time.clock()-time_old_psu_1)>d_time ):  # in case current value was not received by PSU
-                    curr_2_str = str(self.curr_2_value)
+                if  ((self.current_refresh[1]==2) and (time.clock()-time_old_psu_1)>d_time ):  # in case current value was not received by PSU
+                    curr_2_str = str(self.current_value[1])
                     self.do_and_nowait('PW 2 '+curr_2_str+'\r\n')
-                    self.i_2_refresh = self.i_2_refresh +1
+                    self.current_refresh[1] = self.current_refresh[1] +1
                     time_old_psu_1 = time.clock()
 
-                if ((self.i_3_refresh==2) and (time.clock()-time_old_psu_2)>d_time ):  # in case current value was not received by PSU
-                    curr_3_str = str(self.curr_3_value)
+                if ((self.current_refresh[2]==2) and (time.clock()-time_old_psu_2)>d_time ):  # in case current value was not received by PSU
+                    curr_3_str = str(self.current_value[2])
                     self.do_and_nowait('PW 3 '+curr_3_str+'\r\n')
-                    self.i_3_refresh = self.i_3_refresh +1
+                    self.current_refresh[2] = self.current_refresh[2] +1
                     time_old_psu_2 = time.clock()
 
-                if ((self.i_4_refresh==2)  and (time.clock()-time_old_psu_2)>d_time ):  # in case current value was not received by PSU
-                    curr_4_str = str(self.curr_4_value)
+                if ((self.current_refresh[3]==2)  and (time.clock()-time_old_psu_2)>d_time ):  # in case current value was not received by PSU
+                    curr_4_str = str(self.current_value[3])
                     self.do_and_nowait('PW 4 '+curr_4_str+'\r\n')
-                    self.i_4_refresh = self.i_4_refresh +1
+                    self.current_refresh[3] = self.current_refresh[3] +1
                     time_old_psu_2 = time.clock()
 
 
@@ -160,123 +148,123 @@ class ThreadPowerSupply(QThread):
 
 
             if (kk <1.0):
-                if (self.curr_1_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_1_str = str(self.curr_1_value)
+                if (self.current_changed[0] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_1_str = str(self.current_value[0])
                     self.do_and_nowait('PW 1 '+curr_1_str+'\r\n')
-                    self.curr_1_changed = False
+                    self.current_changed[0] = False
                     time_old_update_I = time.clock()
-                    self.i_1_refresh = self.i_1_refresh +1
+                    self.current_refresh[0] = self.current_refresh[0] +1
                     time_old_psu_1 = time.clock()
-                if (self.curr_3_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_3_str = str(self.curr_3_value)
+                if (self.current_changed[2] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_3_str = str(self.current_value[2])
                     self.do_and_nowait('PW 3 '+curr_3_str+'\r\n')
-                    self.curr_3_changed = False
-                    self.i_3_refresh = self.i_3_refresh +1
+                    self.current_changed[2] = False
+                    self.current_refresh[2] = self.current_refresh[2] +1
                     time_old_update_I = time.clock()
                     time_old_psu_2 = time.clock()
-                if (self.curr_2_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_2_str = str(self.curr_2_value)
+                if (self.current_changed[1] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_2_str = str(self.current_value[1])
                     self.do_and_nowait('PW 2 '+curr_2_str+'\r\n')
-                    self.curr_2_changed = False
+                    self.current_changed[1] = False
                     time_old_update_I = time.clock()
-                    self.i_2_refresh = self.i_2_refresh +1
+                    self.current_refresh[1] = self.current_refresh[1] +1
                     time_old_psu_1 = time.clock()
-                if (self.curr_4_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_4_str = str(self.curr_4_value)
+                if (self.current_changed[3] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_4_str = str(self.current_value[3])
                     self.do_and_nowait('PW 4 '+curr_4_str+'\r\n')
-                    self.curr_4_changed = False
+                    self.current_changed[3] = False
                     time_old_update_I = time.clock()
-                    self.i_4_refresh = self.i_4_refresh +1
+                    self.current_refresh[3] = self.current_refresh[3] +1
                     time_old_psu_2 = time.clock()
 
             elif ((kk <2.0) and (kk >= 1.0)):
-                if (self.curr_1_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_1_str = str(self.curr_1_value)
+                if (self.current_changed[0] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_1_str = str(self.current_value[0])
                     self.do_and_nowait('PW 1 '+curr_1_str+'\r\n')
-                    self.curr_1_changed = False
+                    self.current_changed[0] = False
                     time_old_update_I = time.clock()
-                    self.i_1_refresh = self.i_1_refresh +1
+                    self.current_refresh[0] = self.current_refresh[0] +1
                     time_old_psu_1 = time.clock()
-                if (self.curr_3_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_3_str = str(self.curr_3_value)
+                if (self.current_changed[2] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_3_str = str(self.current_value[2])
                     self.do_and_nowait('PW 3 '+curr_3_str+'\r\n')
-                    self.curr_3_changed = False
+                    self.current_changed[2] = False
                     time_old_update_I = time.clock()
-                    self.i_3_refresh = self.i_3_refresh +1
+                    self.current_refresh[2] = self.current_refresh[2] +1
                     time_old_psu_2 = time.clock()
-                if (self.curr_4_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_4_str = str(self.curr_4_value)
+                if (self.current_changed[3] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_4_str = str(self.current_value[3])
                     self.do_and_nowait('PW 4 '+curr_4_str+'\r\n')
-                    self.curr_4_changed = False
+                    self.current_changed[3] = False
                     time_old_update_I = time.clock()
-                    self.i_4_refresh = self.i_4_refresh +1
+                    self.current_refresh[3] = self.current_refresh[3] +1
                     time_old_psu_2 = time.clock()
-                if (self.curr_2_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_2_str = str(self.curr_2_value)
+                if (self.current_changed[1] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_2_str = str(self.current_value[1])
                     self.do_and_nowait('PW 2 '+curr_2_str+'\r\n')
-                    self.curr_2_changed = False
+                    self.current_changed[1] = False
                     time_old_update_I = time.clock()
-                    self.i_2_refresh = self.i_2_refresh +1
+                    self.current_refresh[1] = self.current_refresh[1] +1
                     time_old_psu_1 = time.clock()
 
             elif ((kk <3.0) and (kk >= 2.0)):
-                if (self.curr_3_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_3_str = str(self.curr_3_value)
+                if (self.current_changed[2] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_3_str = str(self.current_value[2])
                     self.do_and_nowait('PW 3 '+curr_3_str+'\r\n')
-                    self.curr_3_changed = False
+                    self.current_changed[2] = False
                     time_old_update_I = time.clock()
-                    self.i_3_refresh = self.i_3_refresh +1
+                    self.current_refresh[2] = self.current_refresh[2] +1
                     time_old_psu_2 = time.clock()
-                if (self.curr_1_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_1_str = str(self.curr_1_value)
+                if (self.current_changed[0] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_1_str = str(self.current_value[0])
                     self.do_and_nowait('PW 1 '+curr_1_str+'\r\n')
-                    self.curr_1_changed = False
+                    self.current_changed[0] = False
                     time_old_update_I = time.clock()
-                    self.i_1_refresh = self.i_1_refresh +1
+                    self.current_refresh[0] = self.current_refresh[0] +1
                     time_old_psu_1 = time.clock()
-                if (self.curr_2_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_2_str = str(self.curr_2_value)
+                if (self.current_changed[1] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_2_str = str(self.current_value[1])
                     self.do_and_nowait('PW 2 '+curr_2_str+'\r\n')
-                    self.curr_2_changed = False
+                    self.current_changed[1] = False
                     time_old_update_I = time.clock()
-                    self.i_2_refresh = self.i_2_refresh +1
+                    self.current_refresh[1] = self.current_refresh[1] +1
                     time_old_psu_1 = time.clock()
-                if (self.curr_4_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_4_str = str(self.curr_4_value)
+                if (self.current_changed[3] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_4_str = str(self.current_value[3])
                     self.do_and_nowait('PW 4 '+curr_4_str+'\r\n')
-                    self.curr_4_changed = False
+                    self.current_changed[3] = False
                     time_old_update_I = time.clock()
-                    self.i_4_refresh = self.i_4_refresh +1
+                    self.current_refresh[3] = self.current_refresh[3] +1
                     time_old_psu_2 = time.clock()
 
             else:
-                if (self.curr_3_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_3_str = str(self.curr_3_value)
+                if (self.current_changed[2] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_3_str = str(self.current_value[2])
                     self.do_and_nowait('PW 3 '+curr_3_str+'\r\n')
-                    self.curr_3_changed = False
+                    self.current_changed[2] = False
                     time_old_update_I = time.clock()
-                    self.i_3_refresh = self.i_3_refresh +1
+                    self.current_refresh[2] = self.current_refresh[2] +1
                     time_old_psu_2 = time.clock()
-                if (self.curr_1_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_1_str = str(self.curr_1_value)
+                if (self.current_changed[0] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_1_str = str(self.current_value[0])
                     self.do_and_nowait('PW 1 '+curr_1_str+'\r\n')
-                    self.curr_1_changed = False
+                    self.current_changed[0] = False
                     time_old_update_I = time.clock()
-                    self.i_1_refresh = self.i_1_refresh +1
+                    self.current_refresh[0] = self.current_refresh[0] +1
                     time_old_psu_1 = time.clock()
-                if (self.curr_4_changed and (time.clock() - time_old_psu_2) > d_time):  # True
-                    curr_4_str = str(self.curr_4_value)
+                if (self.current_changed[3] and (time.clock() - time_old_psu_2) > d_time):  # True
+                    curr_4_str = str(self.current_value[3])
                     self.do_and_nowait('PW 4 '+curr_4_str+'\r\n')
-                    self.curr_4_changed = False
+                    self.current_changed[3] = False
                     time_old_update_I = time.clock()
-                    self.i_4_refresh = self.i_4_refresh +1
+                    self.current_refresh[3] = self.current_refresh[3] +1
                     time_old_psu_2 = time.clock()
-                if (self.curr_2_changed and (time.clock() - time_old_psu_1) > d_time):  # True
-                    curr_2_str = str(self.curr_2_value)
+                if (self.current_changed[1] and (time.clock() - time_old_psu_1) > d_time):  # True
+                    curr_2_str = str(self.current_value[1])
                     self.do_and_nowait('PW 2 '+curr_2_str+'\r\n')
-                    self.curr_2_changed = False
+                    self.current_changed[1] = False
                     time_old_update_I = time.clock()
-                    self.i_2_refresh = self.i_2_refresh +1
+                    self.current_refresh[1] = self.current_refresh[1] +1
                     time_old_psu_1 = time.clock()
 
 
