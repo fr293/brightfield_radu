@@ -86,6 +86,7 @@ class DoubleToggleButtonWidget(QWidget):
             self.vbox = QVBoxLayout()
             self.vbox.addWidget(self.label)
             self.vbox.addLayout(self.layout)
+            self.vbox.setContentsMargins(0,0,0,0)
             self.setLayout(self.vbox)
 
     def toggle(self):

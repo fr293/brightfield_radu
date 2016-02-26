@@ -13,12 +13,12 @@ class ThreadDisplay(QThread):
         print('Display Thread Started')
         #while(True):
 
-        #    self.paintEvent()
+        self.paintEvent()
 
     def paintEvent(self):
         self.qp = QPainter()
 
-        self.qp.begin(self)
+        self.qp.begin(self.gui)
         self.drawFrames(self.qp)
         self.qp.end()
 
@@ -27,7 +27,7 @@ class ThreadDisplay(QThread):
     def drawFrames(self, qp):
 
         small = 16.0
-        small_1 = self.zoom_factor
+        small_1 = self.bead_zoom
         x_min = 794
         y_min = 470
         x_max = 1794
@@ -36,7 +36,7 @@ class ThreadDisplay(QThread):
         y_mid = int((y_min+y_max)/2.0)
         x_rez = 2588
         y_rez = 1940
-        slider_val = self.slider_bead_size_value
+        #slider_val = self.slider_bead_size_value
 
         x11 = 735; x12 = x11 + 134
         y11 = 770; y12 = y11 + 300

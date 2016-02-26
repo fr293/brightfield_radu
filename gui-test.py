@@ -26,7 +26,7 @@ class GUIWindow(QMainWindow):
     #constructor
     def __init__(self):
         super(GUIWindow,self).__init__()
-        
+
         #serial power supply
         serial_ps = serial.Serial('COM3', 19200,timeout=0.05)
         atexit.register(serial_ps.close)   # to be sure that serial communication is closed
@@ -35,11 +35,11 @@ class GUIWindow(QMainWindow):
         self.thread_ps = ThreadPowerSupply(serial_ps)
         self.thread_ps.start()
 
-        self.thread_disp = ThreadDisplay(self)
+        self.initUI()
+
+        self.thread_disp = ThreadDisplay(self.disp_group)
         self.thread_disp.start()
 
-        self.initUI()
-        
     def __del__(self):
         self.thread_ps.done_ps=True
         self.thread_ps.wait()
@@ -89,7 +89,14 @@ class GUIWindow(QMainWindow):
         self.setStatusBar(self.statbar)
 
     def create_disp_group(self):
-        self.disp_group = QWidget
+        self.disp_group = QGroupBox('VIDEO DISPLAY')
+
+        vbox = QVBoxLayout()
+        self.disp_box = QWidget()
+        vbox.addWidget(self.disp_box)
+
+        self.disp_group.setLayout(vbox)
+
 
     def create_bead_group(self):
         #display settings group
@@ -139,7 +146,7 @@ class GUIWindow(QMainWindow):
             hbox.addWidget(vars()[widget_str])
 
             vbox.addLayout(hbox)
-
+        vbox.addStretch(1)
         detection_group = QGroupBox('BEAD DETECTION')
         detection_group.setLayout(vbox)
         detection_group.setFixedWidth(250)
@@ -160,7 +167,7 @@ class GUIWindow(QMainWindow):
                 widget_str = 'self.bead_'+key+str(i)
                 vars()[widget_str] = ValueDisplayWidget(val[0],val[1],val[2])
                 vbox.addWidget(vars()[widget_str])
-
+            vbox.addStretch(1)
             if i == 1:
                 cam1_group = QGroupBox('CAMERA 1')
                 cam1_group.setLayout(vbox)
@@ -306,7 +313,9 @@ class GUIWindow(QMainWindow):
         return
 
     def bead_changed(self,bead_zoom):
-        self.thread_disp.bead_zoom = bead_zoom
+        print('bead changed')
+        #self.thread_disp.bead_zoom = bead_zoom
+
 
     def bead_zact_toggle(self,toggleFlag):
         if toggleFlag == True:
