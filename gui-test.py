@@ -28,7 +28,7 @@ class GUIWindow(QMainWindow):
         super(GUIWindow,self).__init__()
 
         #serial power supply
-        serial_ps = serial.Serial('COM3', 19200,timeout=0.05)
+        serial_ps = serial.Serial('COM5', 19200,timeout=0.05)
         atexit.register(serial_ps.close)   # to be sure that serial communication is closed
         print "serial ps open"
         

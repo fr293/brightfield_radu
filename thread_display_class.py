@@ -3,11 +3,31 @@ import time
 from PySide.QtCore import *
 from PySide.QtGui import *
 
+try:
+    from pymba import *
+except ImportError as e:
+    print e
+    print "Is VimbaC.dll found by the runtime?"
+    exit()
+
 class ThreadDisplay(QThread):
     def __init__(self,gui_):
         super(ThreadDisplay, self).__init__()
         self.gui = gui_
         self.bead_zoom = 1
+
+        # ************************************
+        # *********** VIDEO config ***********
+
+
+        vimba=Vimba()
+        vimba.startup()
+        system = vimba.getSystem()
+
+        camera_ids = vimba.getCameraIds()
+
+        for cam_id in camera_ids:
+            print "Camera found: ", cam_id
 
     def run(self):  # method which runs the thread
         print('Display Thread Started')
