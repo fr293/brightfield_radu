@@ -5,9 +5,9 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 
 class ThreadPowerSupply(QThread):
-    def __init__(self,ser):
+    def __init__(self,serial_ps):
         super(ThreadPowerSupply, self).__init__()
-        self.serial = ser
+        self.serial = serial_ps
 
     def run(self):  # method which runs the thread
                     # it will be started from main thread
@@ -17,6 +17,8 @@ class ThreadPowerSupply(QThread):
                                # termination of the thread
         self.power_is_set_on = False  # if power is ON, True
         self.power_is_set_off = False
+        self.led_is_set_on = False
+        self.led_is_set_off = False
 
         self.error_1_ps_1_status = False
         self.error_2_ps_1_status = False
@@ -94,8 +96,6 @@ class ThreadPowerSupply(QThread):
                     self.current_refresh[3] = self.current_refresh[3] +1
                     time_old_psu_2 = time.clock()
 
-
-
             if (self.power_is_set_on and ((time.clock()-time_old_psu_1)>d_time) and \
                     ((time.clock()-time_old_psu_2)>d_time)): # and out_flag_ps =='0':
                 self.do_and_nowait('P_ON\r\n')
@@ -103,11 +103,24 @@ class ThreadPowerSupply(QThread):
                 time_old_psu_1 = time.clock()
                 time_old_psu_2 = time.clock()
 
-
             if (self.power_is_set_off and ((time.clock()-time_old_psu_1)>d_time) and \
                     ((time.clock()-time_old_psu_2)>d_time)): # and out_flag_ps =='0':
                 self.do_and_nowait('P_OFF\r\n')
                 self.power_is_set_off = False
+                time_old_psu_1 = time.clock()
+                time_old_psu_2 = time.clock()
+
+            if (self.led_is_set_on and ((time.clock()-time_old_psu_1)>d_time) and \
+                    ((time.clock()-time_old_psu_2)>d_time)): # and out_flag_ps =='0':
+                self.do_and_nowait('Light_ON'+'\r\n')
+                self.led_is_set_on = False
+                time_old_psu_1 = time.clock()
+                time_old_psu_2 = time.clock()
+
+            if (self.led_is_set_off and ((time.clock()-time_old_psu_1)>d_time) and \
+                    ((time.clock()-time_old_psu_2)>d_time)): # and out_flag_ps =='0':
+                self.do_and_nowait('Light_OFF'+'\r\n')
+                self.led_is_set_off = False
                 time_old_psu_1 = time.clock()
                 time_old_psu_2 = time.clock()
 
@@ -143,9 +156,6 @@ class ThreadPowerSupply(QThread):
                     self.do_and_reply_ps_error(temporal)
                     self.send_cmd_ps_status = False
                     time_old_psu_2 = time.clock()
-
-
-
 
             if (kk <1.0):
                 if (self.current_changed[0] and (time.clock() - time_old_psu_1) > d_time):  # True
@@ -267,7 +277,6 @@ class ThreadPowerSupply(QThread):
                     self.current_refresh[1] = self.current_refresh[1] +1
                     time_old_psu_1 = time.clock()
 
-
             if (time.clock()-time_old_temp)>1.0: # 2 sensors was 2.0
                 if channel == 1:
                     temp_thermistor = self.do_and_reply_ps('T1\r\n')
@@ -292,7 +301,6 @@ class ThreadPowerSupply(QThread):
                 else:
                     print 'error channel'
                 #print channel
-
 
         self.do_and_nowait('P_OFF\r\n')
         #self.emit(SIGNAL("flag_ps_send(QString)"),' ')
@@ -319,9 +327,6 @@ class ThreadPowerSupply(QThread):
                     reply_1 = self.serial.readline()    # read from serial the answer
                     reply_2 = reply_1[:4]     # remove \r\n from the answer 20.5
                     index_serial = index_serial + index_serial
-
-
-
         return reply_2
 
     def do_and_nowait(self,to_do):  # method - no answer expected from actuator

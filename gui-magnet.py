@@ -126,7 +126,7 @@ camcapture_2.runFeatureCommand("AcquisitionStart")
 
 # *************************************************
 # ******* CLASS to convert NumPy to QImageO *******
-class NumPyQImage(QtGui.QImage):
+class (QtGui.QImage):
     def __init__(self, numpyImg):
         
         #print type(numpyImg), len(numpyImg.shape), numpyImg.shape
