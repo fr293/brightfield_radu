@@ -6,8 +6,6 @@ import time
 import atexit
 import serial
 
-
-
 # Import the core and GUI elements of Qt
 from PySide.QtCore import *
 from PySide.QtGui import *
@@ -16,7 +14,8 @@ from PySide.QtGui import *
 from double_spin_box_widget_class import *
 from thread_power_supply_class import *
 from button_widget_class import *
-from thread_display_class import *
+from display_widget_class import *
+from thread_detection_class import *
 
 import pyqtgraph as pg
 
@@ -37,7 +36,7 @@ class GUIWindow(QMainWindow):
 
         self.initUI()
 
-        self.thread_disp = ThreadDisplay(self.disp_group)
+        self.thread_disp = ThreadDetection()
         self.thread_disp.start()
 
     def __del__(self):
@@ -92,8 +91,8 @@ class GUIWindow(QMainWindow):
         self.disp_group = QGroupBox('VIDEO DISPLAY')
 
         vbox = QVBoxLayout()
-        self.disp_box = QWidget()
-        vbox.addWidget(self.disp_box)
+        self.disp_widget = DisplayWidget()
+        vbox.addWidget(self.disp_widget)
 
         self.disp_group.setLayout(vbox)
 

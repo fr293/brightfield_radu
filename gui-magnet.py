@@ -6,9 +6,9 @@ import numpy
 import numpy as np
 import datetime
 
-from pylab import *
+#from pylab import *
 import cv2
-#import serial
+import serial
 import atexit
 import os
 import random
@@ -126,7 +126,7 @@ camcapture_2.runFeatureCommand("AcquisitionStart")
 
 # *************************************************
 # ******* CLASS to convert NumPy to QImageO *******
-class (QtGui.QImage):
+class NumPyQImage(QtGui.QImage):
     def __init__(self, numpyImg):
         
         #print type(numpyImg), len(numpyImg.shape), numpyImg.shape
