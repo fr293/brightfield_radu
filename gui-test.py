@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+sandbox = True
 
 import sys
 from math import *
@@ -14,10 +15,12 @@ from PySide.QtGui import *
 from double_spin_box_widget_class import *
 from thread_power_supply_class import *
 from button_widget_class import *
-from display_widget_class import *
+if sandbox == False:
+    from display_widget_class import *
 from thread_detection_class import *
 
 import pyqtgraph as pg
+
 
 # ****************************************************
 # ******* CLASS - THREAD FOR GUI (main thread) *******
@@ -27,7 +30,10 @@ class GUIWindow(QMainWindow):
         super(GUIWindow,self).__init__()
 
         #serial power supply
-        serial_ps = serial.Serial('COM5', 19200,timeout=0.05)
+        if sandbox == True:
+            serial_ps = serial.Serial('COM3', 19200,timeout=0.05)
+        else:
+            serial_ps = serial.Serial('COM5', 19200,timeout=0.05)
         atexit.register(serial_ps.close)   # to be sure that serial communication is closed
         print "serial ps open"
         
@@ -91,8 +97,9 @@ class GUIWindow(QMainWindow):
         self.disp_group = QGroupBox('VIDEO DISPLAY')
 
         vbox = QVBoxLayout()
-        self.disp_widget = DisplayWidget()
-        vbox.addWidget(self.disp_widget)
+        if sandbox == False:
+            self.disp_widget = DisplayWidget()
+            vbox.addWidget(self.disp_widget)
 
         self.disp_group.setLayout(vbox)
 
@@ -314,7 +321,6 @@ class GUIWindow(QMainWindow):
     def bead_changed(self,bead_zoom):
         print('bead changed')
         #self.thread_disp.bead_zoom = bead_zoom
-
 
     def bead_zact_toggle(self,toggleFlag):
         if toggleFlag == True:
