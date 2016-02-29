@@ -36,20 +36,11 @@ class DisplayWidget(QWidget):
         cam1_exp_time_dec = camcapture.readRegister("F0F0081C") # address for Shuter
         cam1_exp_time_base_no = int('{0:b}'.format(cam1_exp_time_dec)[20:],2)
         cam1_exp_time_ms = cam1_exp_time_base_no*0.02
-        #print 'exp ', cam1_exp_time_base_no, cam1_exp_time_ms
-        #static_write_register = "10000010000000000000"
-        #cam1_exp_time_base_no_new = 203
-        #cam1_exp_time_base_no_new_bin = '{0:012b}'.format(cam1_exp_time_base_no_new)
-        #write_register = hex(int(static_write_register + cam1_exp_time_base_no_new_bin,2))[2:-1]
-        #print write_register
-        #time.sleep(0.5)
-        #camcapture.writeRegister("F0F0081C",write_register)
 
         self.frame = camcapture.getFrame()
         self.frame.announceFrame()
         camcapture.startCapture()
         camcapture.runFeatureCommand("AcquisitionStart")
-        # +++++++++++++++++++++++++++++++++++++++
 
         # ***************************************
         # ******* OPEN AND GET 2nd VIDEO *********
@@ -172,7 +163,6 @@ class DisplayWidget(QWidget):
 #CLASS to convert NumPy to QImageO
 class NumPyQImage(QImage):
     def __init__(self, numpyImg):
-
         #print type(numpyImg), len(numpyImg.shape), numpyImg.shape
 
         #if len(numpyImg.shape) !=2:
@@ -184,9 +174,7 @@ class NumPyQImage(QImage):
             numpyImg = np.zeros((100,100),np.uint8)
             numpyImg[:] = (255)
 
-
-
-        h, w =numpyImg.shape
+        h, w = numpyImg.shape
 
         result = QImage(numpyImg.data, w,h,QImage.Format_Indexed8)
         result.ndarray = numpyImg

@@ -1,21 +1,44 @@
 from PySide.QtGui import *
 from PySide.QtCore import *
 
-class MomentaryButtonWidget(QWidget):
+class PushButtonWidget(QPushButton):
+    def __init__(self,text,slot,*args):
+        super(PushButtonWidget,self).__init__()
+        #create button
+        self.setText(text)
+
+        if args:
+            self.ref_text = args[0]
+            self.ret_flag = True
+        else:
+            self.ret_flag = False
+
+        self.slot = slot
+        self.clicked.connect(self.clicked_slot)
+
+    def clicked_slot(self):
+        if self.ret_flag == True:
+            self.slot(self.ref_text)
+        else:
+            self.slot()
+
+class MomentaryButtonWidget(QPushButton):
     #constructor
-    def __init__(self,text,*args):
+    def __init__(self,text,slot_list):
         super(MomentaryButtonWidget,self).__init__()
         #create button
         self.button = QPushButton(text)
-        self.toggleFlag = False
+        self.toggle_flag = False
 
         #connections
-        self.nargs = len(args)
-        if self.nargs == 1:
-            self.slot_toggle = args[0]
-        elif len(args) == 2:
-            self.slot_on = args[0]
-            self.slot_off = args[1]
+        if slot_list is not list:
+            self.slot_on = slot_list
+            self.slot_off = slot_list
+            self.return_flag = True
+        else:
+            self.slot_on = slot_list[0]
+            self.slot_off = slot_list[1]
+            self.return_flag = False
         self.button.pressed.connect(self.toggle)
         self.button.released.connect(self.toggle)
 
@@ -25,20 +48,22 @@ class MomentaryButtonWidget(QWidget):
         self.layout.setContentsMargins(0,0,0,0)
 
         self.setLayout(self.layout)
-
+        
     def toggle(self):
         #turn on
-        if self.toggleFlag == False:
-            self.toggleFlag = True
-            if self.nargs == 2:
-                self.slot_on
+        if self.toggle_flag == False:
+            self.toggle_flag = True
+            if self.return_flag:
+                self.slot_on(self.toggle_flag)
+            else:
+                self.slot_on()
         #turn off
         else:
-            self.toggleFlag = False
-            if self.nargs == 2:
-                self.slot_off
-        if self.nargs == 1:
-            self.slot_toggle(self.toggleFlag)
+            self.toggle_flag = False
+            if self.return_flag:
+                self.slot_off(self.toggle_flag)
+            else:
+                self.slot_off()
 
 class DoubleToggleButtonWidget(QWidget):
     #constructor
@@ -60,17 +85,17 @@ class DoubleToggleButtonWidget(QWidget):
         #initialise buttons
         self.button1.setEnabled(True)
         self.button2.setEnabled(False)
-        self.toggleFlag = False
+        self.toggle_flag = False
 
         #connections
         if slot_list is not list:
             self.slot_on = slot_list
             self.slot_off = slot_list
-            self.returnFlag = True
+            self.return_flag = True
         else:
             self.slot_on = slot_list[0]
             self.slot_off = slot_list[1]
-            self.returnFlag = False
+            self.return_flag = False
         self.button1.clicked.connect(self.toggle)
         self.button2.clicked.connect(self.toggle)
 
@@ -91,45 +116,20 @@ class DoubleToggleButtonWidget(QWidget):
 
     def toggle(self):
         #turn on
-        if self.toggleFlag == False:
-            self.toggleFlag = True
+        if self.toggle_flag == False:
+            self.toggle_flag = True
             self.button1.setEnabled(False)
             self.button2.setEnabled(True)
-            if self.returnFlag:
-                self.slot_on(self.toggleFlag)
+            if self.return_flag:
+                self.slot_on(self.toggle_flag)
             else:
                 self.slot_on()
         #turn off
         else:
-            self.toggleFlag = False
+            self.toggle_flag = False
             self.button1.setEnabled(True)
             self.button2.setEnabled(False)
-            if self.returnFlag:
-                self.slot_off(self.toggleFlag)
+            if self.return_flag:
+                self.slot_off(self.toggle_flag)
             else:
                 self.slot_off()
-
-class ValueDisplayWidget(QWidget):
-    #constructor
-    def __init__(self,text,float_digits,*args):
-        super(ValueDisplayWidget,self).__init__()
-
-        digits = float_digits[0]
-        decimals = float_digits[1]
-
-        self.label = QLabel(text)
-        self.value_label = QLabel()
-
-        self.format_string = str('{0:'+'{0}.{1}f'.format(digits,decimals)+'}')
-        self.value_label.setText(self.format_string.format(0))
-        if args:
-            self.value_label.setText(self.format_string.format(args[0]))
-
-        #add widgets to layout
-        self.layout = QHBoxLayout()
-        self.layout.addWidget(self.label)
-        self.layout.addStretch(1)
-        self.layout.addWidget(self.value_label)
-        self.layout.setContentsMargins(0,0,0,0)
-
-        self.setLayout(self.layout)
