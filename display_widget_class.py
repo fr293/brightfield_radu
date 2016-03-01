@@ -116,27 +116,8 @@ class DisplayWidget(QWidget):
         self.time_calib = time.clock()
 
         n_frame = np.ndarray(buffer=frame_data, dtype=np.uint8, shape=(self.frame.height,self.frame.width))
-        print('loaded')
-        #print type(n_frame)
-
-        #print "time_1", time.clock()
-
-        #n_frame = camcapture.getImage(5000) #2s timeout # Numpy frame - openCV
-        #print "time_2", time.clock()
-
-        #n_frame_2=camcapture_2.getImage(2000)
-        #n_frame_2 = self.th_video.n_frame_2_th
-        #self.th_video.trigger = False
-        #print "time_3", time.clock()
-        if (self.index_pct_fps == 0):
-            self.time_fps_old = time.clock()
-
-        self.index_pct_fps = self.index_pct_fps + 1
-
-        #print self.index_pct_fps
-
+        print(self.frame.height,self.frame.width)
         n_frame_rect = n_frame.copy()
-        #cv2.rectangle(n_frame_rect,(700,500),(1700,1500),(255,127,127),4)
         cv2.rectangle(n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
 
         cv2.rectangle(n_frame_rect,(x11,y11),(x12,y12),(255,127,127),4)
