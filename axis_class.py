@@ -16,6 +16,7 @@ class Axis:
         self.feed_vel = 0
 
         self.value = ValueDisplayWidget(['Position','mm'],[6,3])
+        self.abs_value = ValueDisplayWidget(['Abs','mm'],[6,3])
         self.sbox = SpinBoxWidget(['Set Position','mm'],0,[0,0.005,50],[6,3],self.set_position_changed,False)
         self.zero_button = PushButtonWidget('Zero',self.zero)
         self.home_button = PushButtonWidget('Home',self.home)
@@ -63,7 +64,11 @@ class Axis:
         self.tab.addTab(self.manual_widget,'Manual')
 
         self.vbox = QVBoxLayout()
-        self.vbox.addWidget(self.value)
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.value)
+        hbox.addStretch(1)
+        hbox.addWidget(self.abs_value)
+        self.vbox.addLayout(hbox)
         self.vbox.addWidget(self.tab)
         self.widget = QWidget()
         self.widget.setLayout(self.vbox)

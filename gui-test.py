@@ -237,7 +237,7 @@ class GUIWindow(QMainWindow):
         vbox.addWidget(group)
 
         #control subgroup
-        group = QGroupBox('MAGNET CONTROL')
+        group = QGroupBox('BEAD MANIPULATION')
         #manual direction tab
         magnet_manual_widget = QWidget()
         grid = QGridLayout()
