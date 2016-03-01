@@ -15,6 +15,9 @@ class ThreadDetection(QThread):
     def run(self):  # method which runs the thread
         print('Detection Thread Started')
 
+    def value_changed(self,value,ref_text):
+        print('bead value changed: '+ref_text)
+
     #returns picture after thresholding
     def threshold_frame(frame,thresh_min,thresh_max):
         res, ret_frame = cv2.threshold(frame,thresh_min,thresh_max,cv2.THRESH_BINARY)

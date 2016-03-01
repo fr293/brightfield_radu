@@ -307,6 +307,22 @@ class ThreadPowerSupply(QThread):
         self.do_and_nowait('Set_Local\r\n')
         print "Done with Power Supply thread"      # to be converted into a comment
 
+    def led_toggle(self,toggle_flag):
+        if toggle_flag == True:
+            print('LED power on')
+            self.led_is_set_on = True
+        elif toggle_flag == False:
+            print('LED power off')
+            self.led_is_set_off = True
+
+    def power_toggle(self,toggle_flag):
+        if toggle_flag == True:
+            print('ps power on')
+            self.power_is_set_on = True
+        elif toggle_flag == False:
+            print('ps power off')
+            self.power_is_set_off = True
+
     def do_and_reply_ps(self, to_do):  # method - to get answer from controller
         self.serial.write(to_do)            # write to serial a command
         time.sleep(0.02)

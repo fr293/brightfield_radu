@@ -7,12 +7,18 @@ class SpinBoxWidget(QWidget):
 
         digits = float_digits[0]
         decimals = float_digits[1]
+        self.slot = slot
+        self.ref_flag = False
         if type(text_list) is not list:
             label_text = text_list
             units_text = ''
-        elif len(text_list) == 2:
+        else:
             label_text = text_list[0]
             units_text = text_list[1]
+            if len(text_list) == 3:
+                self.ref_text = text_list[2]
+                self.ref_flag = True
+
 
         #create widgets
         self.label = QLabel(label_text)
@@ -34,10 +40,7 @@ class SpinBoxWidget(QWidget):
 
         #connections
         self.spinbox.valueChanged.connect(self.change_set_value)
-        self.spinbox.valueChanged.connect(slot)
-
         self.spinbox.setValue(initial_value)
-        self.set_value = initial_value
         
         #add widgets to layout
         self.layout = QHBoxLayout()
@@ -47,15 +50,18 @@ class SpinBoxWidget(QWidget):
         if value_disp_flag == True:
             self.layout.addStretch(1)
             self.layout.addWidget(self.value_label)
-        if len(text_list) == 2:
+        if units_text != '':
             self.layout.addWidget(self.units_label)
         self.layout.setContentsMargins(0,0,0,0)
         
         self.setLayout(self.layout)
         
     def change_set_value(self):
-        self.set_value = self.spinbox.value()
-        self.value_label.setText(self.format_string.format(self.set_value))
+        #self.value_label.setText(self.format_string.format(self.set_value))
+        if self.ref_flag:
+            self.slot(self.spinbox.value(),self.ref_text)
+        else:
+            self.slot(self.spinbox.value())
 
     def change_value(self,newVal):
         str = self.format_string.format(newVal)
@@ -94,3 +100,6 @@ class ValueDisplayWidget(QWidget):
         self.layout.setContentsMargins(0,0,0,0)
 
         self.setLayout(self.layout)
+
+    def set_value(self,value):
+        self.value_label.setText(self.format_string.format(value))

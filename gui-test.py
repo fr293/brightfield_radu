@@ -19,6 +19,7 @@ if sandbox == False:
     from display_widget_class import *
 from thread_detection_class import *
 from axis_class import *
+from thread_control_class import *
 
 import pyqtgraph as pg
 
@@ -40,19 +41,23 @@ class GUIWindow(QMainWindow):
         
         self.thread_ps = ThreadPowerSupply(serial_ps)
         self.thread_ps.start()
+        self.thread_cont = ThreadControl(self)
+        self.thread_cont.start()
 
-        self.initUI()
+        if sandbox == False:
+            self.disp_widget = DisplayWidget()
 
         self.thread_det = ThreadDetection(self)
         self.thread_det.start()
+
+        self.initUI()
 
     def __del__(self):
         self.thread_ps.done_ps=True
         self.thread_ps.wait()
         print "Exit"             
 
-    # Initialisation of GUI interface
-
+# Initialisation of GUI interface
     def initUI(self):
         
         #window characteristics
@@ -101,7 +106,6 @@ class GUIWindow(QMainWindow):
 
         vbox = QVBoxLayout()
         if sandbox == False:
-            self.disp_widget = DisplayWidget()
             vbox.addWidget(self.disp_widget)
 
         self.disp_group.setLayout(vbox)
@@ -109,15 +113,15 @@ class GUIWindow(QMainWindow):
     def create_bead_group(self):
         #display settings group
         vbox = QVBoxLayout()
-        self.bead_zoom_sbox = SpinBoxWidget('Zoom',6,[1,1,25],[4,1],self.bead_changed,False)
+        self.bead_zoom_sbox = SpinBoxWidget(['Zoom','','zoom'],6,[1,1,25],[4,1],self.thread_det.value_changed,False)
         vbox.addWidget(self.bead_zoom_sbox)
-        self.bead_grid_size_sbox = SpinBoxWidget('Grid Size',1100,[0,100,1300],[4,0],self.bead_changed,False)
+        self.bead_grid_size_sbox = SpinBoxWidget(['Grid Size','','grid_size'],1100,[0,100,1300],[4,0],self.thread_det.value_changed,False)
         vbox.addWidget(self.bead_grid_size_sbox)
 
         #FPS sub group
         group = QGroupBox()
         vbox_ = QVBoxLayout()
-        self.bead_fps_sbox = SpinBoxWidget('FPS',10,[0,1,20],[2,0],self.bead_changed,False)
+        self.bead_fps_sbox = SpinBoxWidget(['FPS','','set_fps'],10,[0,1,20],[2,0],self.thread_det.value_changed,False)
         vbox_.addWidget(self.bead_fps_sbox)
         self.bead_fps = ValueDisplayWidget('Actual FPS',[4,1],10)
         vbox_.addWidget(self.bead_fps)
@@ -134,7 +138,7 @@ class GUIWindow(QMainWindow):
 
         #bead detection settings group
         vbox = QVBoxLayout()
-        self.bead_size_sbox = SpinBoxWidget(['Bead Size','um'],40,[20,20,260],[4,1],self.bead_changed,False)
+        self.bead_size_sbox = SpinBoxWidget(['Bead Size','um','size'],40,[20,20,260],[4,1],self.thread_det.value_changed,False)
         vbox.addWidget(self.bead_size_sbox)
         dict = {'area':['Area',[600,1500],[0,100],[10,100],[10000,10000],5,0],
              'circ':['Circularity',[0.8,1.23],[0.5,0.5],[0.01,0.01],[1.5,1.5],4,2],
@@ -149,10 +153,10 @@ class GUIWindow(QMainWindow):
             hbox.addStretch(2)
 
             widget_str = 'self.bead_'+key+'min_sbox'
-            vars()[widget_str] = SpinBoxWidget('min',val[1][0],[val[2][0],val[3][0],val[4][0]],[val[5],val[6]],self.bead_changed,False)
+            vars()[widget_str] = SpinBoxWidget(['min','',key+'min'],val[1][0],[val[2][0],val[3][0],val[4][0]],[val[5],val[6]],self.thread_det.value_changed,False)
             hbox.addWidget(vars()[widget_str])
             widget_str = 'self.bead_'+key+'max_sbox'
-            vars()[widget_str] = SpinBoxWidget('max',val[1][1],[val[2][1],val[3][1],val[4][1]],[val[5],val[6]],self.bead_changed,False)
+            vars()[widget_str] = SpinBoxWidget(['max','',key+'max'],val[1][1],[val[2][1],val[3][1],val[4][1]],[val[5],val[6]],self.thread_det.value_changed,False)
             hbox.addWidget(vars()[widget_str])
 
             vbox.addLayout(hbox)
@@ -227,7 +231,7 @@ class GUIWindow(QMainWindow):
         vbox_.addLayout(hbox)
         self.set_current_list = []
         for i in range(4):
-            self.set_current_list.append(SpinBoxWidget(['Current ' + str(i+1),'A'],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
+            self.set_current_list.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
             vbox_.addWidget(self.set_current_list[i])
         group.setLayout(vbox_)
         vbox.addWidget(group)
@@ -244,11 +248,40 @@ class GUIWindow(QMainWindow):
         for position, name in zip(positions, names):
             if name == '':
                 continue
-            button = PushButtonWidget(name,self.magnet_manual_direction,name)
+            button = PushButtonWidget(name,self.thread_cont.manual_direction,name)
             grid.addWidget(button, *position)
+        grid.setRowStretch(3,1)
         magnet_manual_widget.setLayout(grid)
         #hold tab
         magnet_hold_widget = QWidget()
+        vbox_ = QVBoxLayout()
+        self.magnet_hold_tbutton = DoubleToggleButtonWidget(['Hold','Release'],self.thread_cont.hold_toggle)
+        vbox_.addWidget(self.magnet_hold_tbutton)
+        vbox_.addStretch(1)
+        magnet_hold_widget.setLayout(vbox_)
+        #move tab
+        magnet_move_widget = QWidget()
+        vbox_ = QVBoxLayout()
+        self.magnet_x_sbox = SpinBoxWidget(['x','mm','x'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
+        self.magnet_y_sbox = SpinBoxWidget(['y','mm','y'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
+        self.magnet_z_sbox = SpinBoxWidget(['z','mm','z'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
+        self.magnet_absrel_tbutton = DoubleToggleButtonWidget(['Absolute','Relative'],self.thread_cont.absrel_toggle,'radio')
+        self.magnet_start_tbutton = DoubleToggleButtonWidget(['Start','Stop'],self.thread_cont.start_toggle)
+        vbox_.addWidget(self.magnet_x_sbox)
+        vbox_.addWidget(self.magnet_y_sbox)
+        vbox_.addWidget(self.magnet_z_sbox)
+        vbox_.addWidget(self.magnet_absrel_tbutton)
+        vbox_.addWidget(self.magnet_start_tbutton)
+        vbox_.addStretch(1)
+        magnet_move_widget.setLayout(vbox_)
+        #tabs
+        self.magnet_tab = QTabWidget()
+        self.magnet_tab.addTab(magnet_manual_widget,'Manual')
+        self.magnet_tab.addTab(magnet_hold_widget,'Hold')
+        self.magnet_tab.addTab(magnet_move_widget,'Move')
+        self.magnet_tab.currentChanged.connect(self.magnet_mode_changed)
+
+
         vbox_ = QVBoxLayout()
         self.bead_posx = ValueDisplayWidget(['Bead Position x','mm'],[6,3])
         vbox_.addWidget(self.bead_posx)
@@ -256,18 +289,7 @@ class GUIWindow(QMainWindow):
         vbox_.addWidget(self.bead_posy)
         self.bead_posz = ValueDisplayWidget(['Bead Position z','mm'],[6,3])
         vbox_.addWidget(self.bead_posz)
-        self.magnet_hold_tbutton = DoubleToggleButtonWidget(['Hold','Release'],self.magnet_hold_toggle)
-        vbox_.addWidget(self.magnet_hold_tbutton)
-        vbox_.addStretch(1)
-        magnet_hold_widget.setLayout(vbox_)
-
-        self.magnet_mode_tab = QTabWidget()
-        self.magnet_mode_tab.addTab(magnet_manual_widget,'Manual')
-        self.magnet_mode_tab.addTab(magnet_hold_widget,'Hold')
-        self.magnet_mode_tab.currentChanged.connect(self.magnet_mode_changed)
-
-        vbox_ = QVBoxLayout()
-        vbox_.addWidget(self.magnet_mode_tab)
+        vbox_.addWidget(self.magnet_tab)
         vbox_.addStretch(1)
         group.setLayout(vbox_)
         vbox.addWidget(group)
@@ -279,13 +301,13 @@ class GUIWindow(QMainWindow):
 
     def create_ps_group(self):
         self.ps_cont_widget = QWidget()
-        self.ps_cont_tbutton = DoubleToggleButtonWidget(['Power ON','Power OFF'],self.ps_power_toggle)
+        self.ps_cont_tbutton = DoubleToggleButtonWidget(['Power ON','Power OFF'],self.thread_ps.power_toggle)
         cont_vbox = QVBoxLayout()
         cont_vbox.addWidget(self.ps_cont_tbutton)
         self.ps_cont_widget.setLayout(cont_vbox)
 
         self.ps_pulse_widget = QWidget()
-        self.ps_pulse_mbutton = MomentaryButtonWidget('Pulse ON',self.ps_power_toggle)
+        self.ps_pulse_mbutton = MomentaryButtonWidget('Pulse ON',self.thread_ps.power_toggle)
         pulse_vbox = QVBoxLayout()
         pulse_vbox.addWidget(self.ps_pulse_mbutton)
         self.ps_pulse_widget.setLayout(pulse_vbox)
@@ -295,7 +317,7 @@ class GUIWindow(QMainWindow):
         self.ps_mode_tab.addTab(self.ps_pulse_widget,'Pulse')
         self.ps_mode_tab.currentChanged.connect(self.ps_mode_changed)
 
-        self.ps_led_tbutton = DoubleToggleButtonWidget(['LED ON','LED OFF'],self.ps_led_toggle)
+        self.ps_led_tbutton = DoubleToggleButtonWidget(['LED ON','LED OFF'],self.thread_ps.led_toggle)
 
         vbox = QVBoxLayout()
         vbox.addWidget(self.ps_mode_tab)
@@ -308,7 +330,8 @@ class GUIWindow(QMainWindow):
 
     def create_act_group(self):
         vbox = QVBoxLayout()
-
+        self.act_estop_button = PushButtonWidget('Emergency Stop',self.act_estop)
+        vbox.addWidget(self.act_estop_button)
         for axis_label in ['x','y','y2']:
             #create axis object
             axis_str = 'self.'+axis_label+'axis'
@@ -324,14 +347,6 @@ class GUIWindow(QMainWindow):
         self.act_group.setLayout(vbox)
         self.act_group.setFixedWidth(300)
 
-    def ps_power_toggle(self,toggle_flag):
-        if toggle_flag == True:
-            print('ps power on')
-            self.thread_ps.power_is_set_on = True
-        elif toggle_flag == False:
-            print('ps power off')
-            self.thread_ps.power_is_set_off = True
-
     def ps_mode_changed(self,tab_index):
         #turn off power supply on mode change
         if self.ps_cont_tbutton.toggle_flag == 1:
@@ -343,32 +358,12 @@ class GUIWindow(QMainWindow):
         if tab_index == 1:
             print('pulse mode')
 
-    def ps_led_toggle(self,toggle_flag):
-        if toggle_flag == True:
-            print('LED power on')
-            self.thread_ps.led_is_set_on = True
-        elif toggle_flag == False:
-            print('LED power off')
-            self.thread_ps.led_is_set_off = True
-
-    def set_current_changed(self):
-        for i in range(4):
-            if self.thread_ps.current_value[i] != self.set_current_list[i].set_value:
-                self.thread_ps.current_value[i] = self.set_current_list[i].set_value
-                self.thread_ps.current_changed[i] = True
-                self.thread_ps.current_refresh[i] = 1
-                print('current '+ str(i) +' changed: '+str(self.set_current_list[i].set_value))
-        return
-
-    def magnet_manual_direction(self,ref_text):
-        if ref_text == 'x+':
-            print('set currents to x+')
-
-    def magnet_hold_toggle(self,toggle_flag):
-        if toggle_flag == True:
-            print('bead hold')
-        elif toggle_flag == False:
-            print('bead release')
+    def set_current_changed(self,value,ref_text):
+        i = int(ref_text)
+        self.thread_ps.current_value[i] = value
+        self.thread_ps.current_changed[i] = True
+        self.thread_ps.current_refresh[i] = 1
+        print('current '+ str(i) +' changed: '+str(value))
 
     def magnet_mode_changed(self,tab_index):
         #turn off hold on mode change
@@ -381,9 +376,17 @@ class GUIWindow(QMainWindow):
         if tab_index == 1:
             print('hold mode')
 
-    def bead_changed(self,ref_text):
+    def bead_changed(self,value,ref_text):
         print('bead changed')
-        #self.thread_det.bead_zoom = bead_zoom
+
+        widget_str = 'self.thread_det.'+ref_text
+        vars()[widget_str] = value
+
+    def disp_changed(self,value,ref_text):
+        print('disp changed')
+
+        widget_str = 'self.thread_det.'+ref_text
+        vars()[widget_str] = value
 
     def bead_zact_toggle(self,toggle_flag):
         if toggle_flag == True:
@@ -396,6 +399,9 @@ class GUIWindow(QMainWindow):
             print('z tracking on')
         elif toggle_flag == False:
             print('z tracking off')
+
+    def act_estop(self):
+        print('EMERGENCY STOP')
 
 # ******** MAIN
 def main():
