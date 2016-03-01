@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-sandbox = False
+sandbox = True
 
 import sys
 from math import *
@@ -359,7 +359,7 @@ class GUIWindow(QMainWindow):
             print('pulse mode')
 
     def set_current_changed(self,value,ref_text):
-        i = int(ref_text)
+        i = int(ref_text)-1
         self.thread_ps.current_value[i] = value
         self.thread_ps.current_changed[i] = True
         self.thread_ps.current_refresh[i] = 1
