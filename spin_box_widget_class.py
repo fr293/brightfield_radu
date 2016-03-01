@@ -36,7 +36,6 @@ class SpinBoxWidget(QWidget):
         self.spinbox.setSingleStep(step)
         self.spinbox.setMaximum(maxVal)
         self.spinbox.setDecimals(decimals)
-        self.spinbox.setValue(initial_value)
 
         #connections
         self.spinbox.valueChanged.connect(self.change_set_value)

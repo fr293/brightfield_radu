@@ -250,7 +250,9 @@ class GUIWindow(QMainWindow):
                 continue
             button = PushButtonWidget(name,self.thread_cont.manual_direction,name)
             grid.addWidget(button, *position)
-        grid.setRowStretch(3,1)
+        self.magnet_manual_base_current_sbox = SpinBoxWidget(['Base Current','A'],0.5,[-2.5,0.05,2.5],[5,3],self.thread_cont.manual_base_current_changed,False)
+        grid.addWidget(self.magnet_manual_base_current_sbox,3,0,1,3)
+        grid.setRowStretch(4,1)
         magnet_manual_widget.setLayout(grid)
         #hold tab
         magnet_hold_widget = QWidget()
