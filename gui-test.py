@@ -43,12 +43,11 @@ class GUIWindow(QMainWindow):
         self.thread_ps.start()
         self.thread_cont = ThreadControl(self)
         self.thread_cont.start()
+        self.thread_det = ThreadDetection(self.disp_widget)
+        self.thread_det.start()
 
         if sandbox == False:
-            self.disp_widget = DisplayWidget()
-
-        self.thread_det = ThreadDetection(self)
-        self.thread_det.start()
+            self.disp_widget = DisplayWidget(self.thread_det)
 
         self.initUI()
 
