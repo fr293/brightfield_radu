@@ -12,8 +12,24 @@ from thread_detection_class import *
 class Axis:
     def __init__(self,axis_name):
         self.axis_name = axis_name
-        self.set_position = 0
+        self.encoder_resolution = 0.05101E-3 #mm
+
+        #0 ready
+        #1 action start
+        #2 action in progress
+        #3 action stop
+        self.move_flag = 0
+        self.pos_type = 'abs'
+        self.move_type = 'jog'
         self.feed_vel = 0
+
+        self.position = 0
+        self.position_l = 0
+        self.encoder_position = 0
+        self.encoder_position_l = 0
+        self.set_position = 0
+        self.encoder_set_position = 0
+        self.lock_encoder_position = 0
 
         self.value = ValueDisplayWidget(['Position','mm'],[6,3])
         self.abs_value = ValueDisplayWidget(['Abs','mm'],[6,3])
@@ -74,19 +90,27 @@ class Axis:
         self.widget.setLayout(self.vbox)
 
     def set_position_changed(self,value):
-        print('set position changed')
+        print(self.axis_name + ': set position changed' + str(value))
         self.set_position = value
+        self.calculate_positions()
 
     def absrel_toggle(self,toggle_flag):
         if toggle_flag == True:
-            print('abs')
+            self.pos_type = 'abs'
+            print(self.axis_name + ': move type abs')
         else:
-            print('rel')
+            self.pos_type = 'rel'
+            print(self.axis_name + ': move type rel')
+
+        self.calculate_positions()
 
     def start_toggle(self,toggle_flag):
         if toggle_flag == True:
+            self.move_flag = 1
             print(self.axis_name + ': start movement')
         else:
+            self.move_flag = 3
+            self.home_flag = 0
             print(self.axis_name + ': stop movement')
 
     def lock_toggle(self,toggle_flag):
@@ -114,3 +138,11 @@ class Axis:
 
     def feed_vel_changed(self,feed_vel):
         self.feed_vel = feed_vel
+
+    def calculate_positions(self):
+        self.position = 0
+        self.position_l = 0
+        self.encoder_position = 0
+        self.encoder_position_l = 0
+        self.set_position = 0
+        self.encoder_set_position = 0

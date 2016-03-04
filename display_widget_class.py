@@ -72,7 +72,7 @@ class DisplayWidget(QWidget):
         self.index_focus_avg_1_RT = 0
         self.index_focus_avg_2_RT = 0
 
-    def paintEvent(self, *args, **kwargs):
+    def paintEvent(self):
         qp = QPainter()
         qp.begin(self)
         self.drawFrames(qp)
