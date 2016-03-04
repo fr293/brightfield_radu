@@ -5,6 +5,7 @@ import cv2.cv as cv
 
 from PySide.QtCore import *
 from PySide.QtGui import *
+from display_widget_class import *
 
 try:
     from pymba import *
@@ -17,6 +18,16 @@ class ThreadDetection(QThread):
     def __init__(self):
         super(ThreadDetection, self).__init__()
         self.time_refresh = 0
+        self.detect_flag = True
+        
+        self.area_min = 990
+        self.area_max = 7000
+        self.circ_min = 0.80
+        self.circ_max = 1.23
+        self.thresh1_min = 80
+        self.thresh1_max = 250
+        self.bead_size = 41.13
+        
         # ************************************
         # *********** VIDEO config ***********
         vimba=Vimba()
@@ -115,8 +126,36 @@ class ThreadDetection(QThread):
         #cv2.rectangle(n_frame_rect,(x41,y41),(x42,y42),(255,127,127),4)
         #cv2.rectangle(n_frame_rect,(x51,y51),(x52,y52),(255,127,127),4)
 
-        self.time_refresh = time.clock()
 
+
+        
+        if self.detect_flag:
+            self.n_frame_beads,xr,yr,wr,hr, self.no_beads, xc,yc, c_factor = self.detect_beads(self.n_frame,
+                                                                  self.thresh1_min,self.thresh1_max,
+                                                                  self.circ_min,self.circ_max,
+                                                                  self.area_min,self.area_max)
+            #self.text_changed_bead()
+
+            if self.no_beads > 0: # At least one bead is detected
+                cn_frame = self.crop(self.n_frame,xr,yr,wr,hr,slider_val) # croped frame with the bead // croped numpy
+
+                cn_frame_sobel = self.sobel_edge(cn_frame)
+                            
+                self.center_x = xc
+                self.center_y = yc
+                print('xc: ' + str(xc) + '; yc: ' +str(yc))
+                #self.text_changed_x_y()
+
+                self.width = wr
+                self.height = hr
+                print('wr: ' + str(xc) + '; hr: ' +str(yc))
+                #self.text_changed_w_h()
+
+                #print type(self.no_beads+0.0)
+                self.round_factor = round(c_factor,2)
+                #self.text_changed_round()
+                
+        self.time_refresh = time.clock()
 
     def value_changed(self,value,ref_text):
         print('bead value changed: '+ref_text)
@@ -269,7 +308,7 @@ class ThreadDetection(QThread):
     #return focus parameter bead reference stack
     def bead_focus_stack(n_frame):
 
-        s_in_frame, xc,yc  = beads_detection_stack(n_frame)
+        s_in_frame, xc,yc  = detect_beads_stack(n_frame)
         s_out_frame = sobel_edge(s_in_frame)
 
         avg, sigma = cv2.meanStdDev(s_out_frame)
