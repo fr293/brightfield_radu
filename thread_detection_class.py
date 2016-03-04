@@ -16,6 +16,7 @@ except ImportError as e:
 class ThreadDetection(QThread):
     def __init__(self):
         super(ThreadDetection, self).__init__()
+        self.time_refresh = 0
         # ************************************
         # *********** VIDEO config ***********
         vimba=Vimba()
@@ -68,6 +69,8 @@ class ThreadDetection(QThread):
         self.index_focus_avg_1_RT = 0
         self.index_focus_avg_2_RT = 0
 
+    def run(self):  # method which runs the thread
+        print('Detection Thread Started')
 
         x_min = 794
         y_min = 470
@@ -94,8 +97,6 @@ class ThreadDetection(QThread):
         x51 = 1550; x52 = x51 + 195
         y51 = 705;  y52 = y51 + 600
 
-    def run(self):  # method which runs the thread
-        print('Detection Thread Started')
 
         self.frame.queueFrameCapture()
         self.frame.waitFrameCapture(1000)
