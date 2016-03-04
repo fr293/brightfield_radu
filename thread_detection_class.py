@@ -5,7 +5,6 @@ import cv2.cv as cv
 
 from PySide.QtCore import *
 from PySide.QtGui import *
-from display_widget_class import *
 
 try:
     from pymba import *
@@ -82,91 +81,90 @@ class ThreadDetection(QThread):
 
     def run(self):  # method which runs the thread
         print('Detection Thread Started')
+        while True:
 
-        x_min = 794
-        y_min = 470
-        x_max = 1794
-        y_max = 1470
-        x_mid = int((x_min+x_max)/2.0)
-        y_mid = int((y_min+y_max)/2.0)
-        x_rez = 2588
-        y_rez = 1940
-        #slider_val = self.slider_bead_size_value
+            x_min = 794
+            y_min = 470
+            x_max = 1794
+            y_max = 1470
+            x_mid = int((x_min+x_max)/2.0)
+            y_mid = int((y_min+y_max)/2.0)
+            x_rez = 2588
+            y_rez = 1940
+            #slider_val = self.slider_bead_size_value
 
-        x11 = 735; x12 = x11 + 134
-        y11 = 770; y12 = y11 + 300
+            x11 = 735; x12 = x11 + 134
+            y11 = 770; y12 = y11 + 300
 
-        x21 = 870; x22 = x21 + 140
-        y21 = 580; y22 = y21 + 690
+            x21 = 870; x22 = x21 + 140
+            y21 = 580; y22 = y21 + 690
 
-        x31 = 1080; x32 = x31 + 155
-        y31 = 606;  y32 = y31 + 600
+            x31 = 1080; x32 = x31 + 155
+            y31 = 606;  y32 = y31 + 600
 
-        x41 = 1250; x42 = x41 + 180
-        y41 = 700;  y42 = y41 + 995
+            x41 = 1250; x42 = x41 + 180
+            y41 = 700;  y42 = y41 + 995
 
-        x51 = 1550; x52 = x51 + 195
-        y51 = 705;  y52 = y51 + 600
-
-
-        self.frame.queueFrameCapture()
-        self.frame.waitFrameCapture(1000)
-        frame_data = self.frame.getBufferByteData()
-
-        self.time_calib = time.clock()
-
-        self.n_frame = np.ndarray(buffer=frame_data, dtype=np.uint8, shape=(self.frame.height,self.frame.width))
-        #print(self.frame.height,self.frame.width)
-        self.n_frame_rect = self.n_frame.copy()
-        cv2.rectangle(self.n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
-
-        #cv2.rectangle(n_frame_rect,(x11,y11),(x12,y12),(255,127,127),4)
-        #cv2.rectangle(n_frame_rect,(x21,y21),(x22,y22),(255,127,127),4)
-        #cv2.rectangle(n_frame_rect,(x31,y31),(x32,y32),(255,127,127),4)
-        #cv2.rectangle(n_frame_rect,(x41,y41),(x42,y42),(255,127,127),4)
-        #cv2.rectangle(n_frame_rect,(x51,y51),(x52,y52),(255,127,127),4)
+            x51 = 1550; x52 = x51 + 195
+            y51 = 705;  y52 = y51 + 600
 
 
+            self.frame.queueFrameCapture()
+            self.frame.waitFrameCapture(1000)
+            frame_data = self.frame.getBufferByteData()
 
-        
-        if self.detect_flag:
-            self.n_frame_beads,xr,yr,wr,hr, self.no_beads, xc,yc, c_factor = self.detect_beads(self.n_frame,
-                                                                  self.thresh1_min,self.thresh1_max,
-                                                                  self.circ_min,self.circ_max,
-                                                                  self.area_min,self.area_max)
-            #self.text_changed_bead()
+            self.time_calib = time.clock()
 
-            if self.no_beads > 0: # At least one bead is detected
-                cn_frame = self.crop(self.n_frame,xr,yr,wr,hr,slider_val) # croped frame with the bead // croped numpy
+            self.n_frame = np.ndarray(buffer=frame_data, dtype=np.uint8, shape=(self.frame.height,self.frame.width))
+            self.n_frame_rect = self.n_frame.copy()
+            cv2.rectangle(self.n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
 
-                cn_frame_sobel = self.sobel_edge(cn_frame)
-                            
-                self.center_x = xc
-                self.center_y = yc
-                print('xc: ' + str(xc) + '; yc: ' +str(yc))
-                #self.text_changed_x_y()
+            #cv2.rectangle(n_frame_rect,(x11,y11),(x12,y12),(255,127,127),4)
+            #cv2.rectangle(n_frame_rect,(x21,y21),(x22,y22),(255,127,127),4)
+            #cv2.rectangle(n_frame_rect,(x31,y31),(x32,y32),(255,127,127),4)
+            #cv2.rectangle(n_frame_rect,(x41,y41),(x42,y42),(255,127,127),4)
+            #cv2.rectangle(n_frame_rect,(x51,y51),(x52,y52),(255,127,127),4)
 
-                self.width = wr
-                self.height = hr
-                print('wr: ' + str(xc) + '; hr: ' +str(yc))
-                #self.text_changed_w_h()
 
-                #print type(self.no_beads+0.0)
-                self.round_factor = round(c_factor,2)
-                #self.text_changed_round()
-                
-        self.time_refresh = time.clock()
+
+
+            if self.detect_flag:
+                self.n_frame_beads,xr,yr,wr,hr,self.no_beads,xc,yc,c_factor = self.detect_beads(self.n_frame,
+                                                                      self.thresh1_min,self.thresh1_max,
+                                                                      self.circ_min,self.circ_max,
+                                                                      self.area_min,self.area_max)
+                if self.no_beads > 0: # At least one bead is detected
+                    self.cn_frame = self.crop(self.n_frame,xr,yr,wr,hr,2) # croped frame with the bead // croped numpy
+
+                    self.cn_frame_sobel = self.sobel_edge(self.cn_frame)
+
+                    self.center_x = xc
+                    self.center_y = yc
+                    print('xc: ' + str(xc) + '; yc: ' +str(yc))
+                    #self.text_changed_x_y()
+
+                    self.width = wr
+                    self.height = hr
+                    print('wr: ' + str(wr) + '; hr: ' +str(hr))
+                    #self.text_changed_w_h()
+
+                    #print type(self.no_beads+0.0)
+                    self.round_factor = round(c_factor,2)
+                    #self.text_changed_round()
+
+            self.time_refresh = time.clock()
 
     def value_changed(self,value,ref_text):
         print('bead value changed: '+ref_text)
 
+
     #returns picture after thresholding
-    def threshold_frame(frame,thresh_min,thresh_max):
+    def threshold_frame(self,frame,thresh_min,thresh_max):
         res, ret_frame = cv2.threshold(frame,thresh_min,thresh_max,cv2.THRESH_BINARY)
         return ret_frame
 
     #detects and filter beads
-    def detect_beads(n_frame,thresh_min,thresh_max,circ_min,circ_max,area_min,area_max):
+    def detect_beads(self,n_frame,thresh_min,thresh_max,circ_min,circ_max,area_min,area_max):
 
         #gray = cv2.cvtColor(n_frame,cv2.COLOR_BGR2GRAY) # might not be necessary
         gray = n_frame.copy()
@@ -205,7 +203,7 @@ class ThreadDetection(QThread):
         return gray,xr,yr,wr,hr,no_detected,cx,cy,ccirc #, gray_contours, thresh, thresh_initial
 
     #crop picture with bead
-    def crop_stack(n_frame,xc,yc):
+    def crop_stack(self,n_frame,xc,yc):
 
         y1 = yc-46
         y2 = yc+46
@@ -218,7 +216,7 @@ class ThreadDetection(QThread):
         return ret_frame
 
     #detects and filter beads for stack
-    def detect_beads_stack(n_frame):
+    def detect_beads_stack(self,n_frame):
 
         th_min = 80
         th_max = 255
@@ -259,7 +257,7 @@ class ThreadDetection(QThread):
 
 
     #crop picture with bead
-    def crop(n_frame,xr,yr,wr,hr,bead_slider):
+    def crop(self,n_frame,xr,yr,wr,hr,bead_slider):
 
         if wr % 2 != 0:  # it seems that wr and hr must be an even number to prevent distorsion of the picture
             wr = wr + 1
@@ -288,7 +286,7 @@ class ThreadDetection(QThread):
         return ret_frame
 
     #return modified image by SOBEL filter
-    def sobel_edge(n_frame):
+    def sobel_edge(self,n_frame):
         kernel = 3
         ddepth = cv2.CV_16S
 
@@ -306,7 +304,7 @@ class ThreadDetection(QThread):
         return img_sobel_n
 
     #return focus parameter bead reference stack
-    def bead_focus_stack(n_frame):
+    def bead_focus_stack(self,n_frame):
 
         s_in_frame, xc,yc  = detect_beads_stack(n_frame)
         s_out_frame = sobel_edge(s_in_frame)
@@ -319,14 +317,14 @@ class ThreadDetection(QThread):
 
 
     #return theoretical focus param s
-    def f1_analytic(x):
+    def f1_analytic(self,x):
         a = -502568.69217
         b = 206443.52808
         c = -28265.96318
         d = 1289.98324
         return a + b*x + c*x*x + d*x*x*x
 
-    def f2_analytic( x):
+    def f2_analytic(self,x):
         a = 491477.6662
         b = -201782.91117
         c = 27613.70843
@@ -334,7 +332,7 @@ class ThreadDetection(QThread):
         return a + b*x + c*x*x + d*x*x*x
 
     #get z offset of the bead
-    def bead_z_evaluate(f1, f2):
+    def bead_z_evaluate(self,f1, f2):
         tol = 0.001
         x_min = 7.27
         x_max = 7.35
@@ -364,7 +362,7 @@ class ThreadDetection(QThread):
         return x_avg
 
     #move or not the actuator
-    def follow_bead(x_av):
+    def follow_bead(self,x_av):
         x_1 = 7.25995
         x_2 = 7.35794
 
@@ -379,7 +377,7 @@ class ThreadDetection(QThread):
 
         return go_act, rel_z_go
 
-    def follow_bead_new(f_1_over_f_2):
+    def follow_bead_new(self,f_1_over_f_2):
         #f_11 = 1.15    # intial - default
         #f_22 = 1.05    # intial - default
 
@@ -416,7 +414,7 @@ class ThreadDetection(QThread):
 
         return go_act, rel_z_go
 
-    def delta_z_bead(x_av):
+    def delta_z_bead(self,x_av):
         x_1 = 7.25995
         return x_av-x_1
 
