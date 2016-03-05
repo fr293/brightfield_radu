@@ -62,7 +62,7 @@ class NumPyQImage(QImage):
         #print type(numpyImg), len(numpyImg.shape), numpyImg.shape
 
         #if len(numpyImg.shape) !=2:
-        #    raise ValueError("it's not 2D array, i.e. Mono8")
+        #    raise ValueError("it's not 2D array,  i.e. Mono8")
 
         if type(numpyImg) is not None:
             numpyImg = np.require(numpyImg,np.uint8,'C') # rearrange to be C style storage

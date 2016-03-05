@@ -14,8 +14,10 @@ except ImportError as e:
     exit()
 
 class ThreadDetection(QThread):
-    def __init__(self):
+    def __init__(self,UI):
         super(ThreadDetection, self).__init__()
+        self.UI = UI
+
         self.time_refresh = 0
         self.detect_flag = True
         
@@ -26,42 +28,46 @@ class ThreadDetection(QThread):
         self.thresh1_min = 80
         self.thresh1_max = 250
         self.bead_size = 41.13
-        
-        # ************************************
-        # *********** VIDEO config ***********
-        vimba=Vimba()
+
+        self.focus1,self.round1,self.nbead1,self.centerx1,self.centery1,self.width1,self.height1 = 0,0,0,0,0,0,0
+
+        #video config
+        vimba = Vimba()
         vimba.startup()
         system = vimba.getSystem()
-
+        #get camera IDs
         camera_ids = vimba.getCameraIds()
         for cam_id in camera_ids:
             print "Camera found: ", cam_id
-
-        # ******* OPEN AND GET VIDEO *********
-        camcapture = vimba.getCamera(camera_ids[0])      #connect first camera by 'id'
+        #open and get video
+        camcapture = vimba.getCamera(camera_ids[0])
         camcapture.openCamera()
-        cam1_exp_time_dec = camcapture.readRegister("F0F0081C") # address for Shuter
+
+        # list camera features
+        cameraFeatureNames = camcapture.getFeatureNames()
+        for name in cameraFeatureNames:
+            print 'Camera feature:', name
+
+        cam1_exp_time_dec = camcapture.readRegister("F0F0081C") # address for shutter
         cam1_exp_time_base_no = int('{0:b}'.format(cam1_exp_time_dec)[20:],2)
         cam1_exp_time_ms = cam1_exp_time_base_no*0.02
+        print(cam1_exp_time_ms)
 
         self.frame = camcapture.getFrame()
         self.frame.announceFrame()
         camcapture.startCapture()
         camcapture.runFeatureCommand("AcquisitionStart")
 
-        # ***************************************
-        # ******* OPEN AND GET 2nd VIDEO *********
-        camcapture_2 = vimba.getCamera(camera_ids[1])      #connect first camera by 'id'
+        #open and get second video
+        camcapture_2 = vimba.getCamera(camera_ids[1])
         camcapture_2.openCamera()
-        cam2_exp_time_dec = camcapture_2.readRegister("F0F0081C") # address for Shuter
+        cam2_exp_time_dec = camcapture_2.readRegister("F0F0081C") # address for shutter
         cam2_exp_time_base_no = int('{0:b}'.format(cam2_exp_time_dec)[20:],2)
         cam2_exp_time_ms = cam2_exp_time_base_no*0.02
-
         self.frame_2 = camcapture_2.getFrame()
         self.frame_2.announceFrame()
         camcapture_2.startCapture()
         camcapture_2.runFeatureCommand("AcquisitionStart")
-        # +++++++++++++++++++++++++++++++++++++++
 
         self.time_old_ard = time.clock()
         self.index_m =1000
@@ -82,7 +88,6 @@ class ThreadDetection(QThread):
     def run(self):  # method which runs the thread
         print('Detection Thread Started')
         while True:
-
             x_min = 794
             y_min = 470
             x_max = 1794
@@ -91,8 +96,6 @@ class ThreadDetection(QThread):
             y_mid = int((y_min+y_max)/2.0)
             x_rez = 2588
             y_rez = 1940
-            #slider_val = self.slider_bead_size_value
-
             x11 = 735; x12 = x11 + 134
             y11 = 770; y12 = y11 + 300
 
@@ -108,7 +111,6 @@ class ThreadDetection(QThread):
             x51 = 1550; x52 = x51 + 195
             y51 = 705;  y52 = y51 + 600
 
-
             self.frame.queueFrameCapture()
             self.frame.waitFrameCapture(1000)
             frame_data = self.frame.getBufferByteData()
@@ -119,43 +121,25 @@ class ThreadDetection(QThread):
             self.n_frame_rect = self.n_frame.copy()
             cv2.rectangle(self.n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
 
-            #cv2.rectangle(n_frame_rect,(x11,y11),(x12,y12),(255,127,127),4)
-            #cv2.rectangle(n_frame_rect,(x21,y21),(x22,y22),(255,127,127),4)
-            #cv2.rectangle(n_frame_rect,(x31,y31),(x32,y32),(255,127,127),4)
-            #cv2.rectangle(n_frame_rect,(x41,y41),(x42,y42),(255,127,127),4)
-            #cv2.rectangle(n_frame_rect,(x51,y51),(x52,y52),(255,127,127),4)
-
-
-
-
             if self.detect_flag:
-                self.n_frame_beads,xr,yr,wr,hr,self.no_beads,xc,yc,c_factor = self.detect_beads(self.n_frame,
+                self.n_frame_beads,xr,yr,self.width1,self.height1,self.nbead1,self.centerx1,self.centery1,self.round1 = self.detect_beads(self.n_frame,
                                                                       self.thresh1_min,self.thresh1_max,
                                                                       self.circ_min,self.circ_max,
                                                                       self.area_min,self.area_max)
-                if self.no_beads > 0: # At least one bead is detected
-                    self.cn_frame = self.crop(self.n_frame,xr,yr,wr,hr,2) # croped frame with the bead // croped numpy
-
+                if self.nbead1 > 0: # At least one bead is detected
+                    self.cn_frame = self.crop(self.n_frame,xr,yr,self.width1,self.height1,2) # croped frame with the bead // croped numpy
                     self.cn_frame_sobel = self.sobel_edge(self.cn_frame)
-
-                    self.center_x = xc
-                    self.center_y = yc
-                    print('xc: ' + str(xc) + '; yc: ' +str(yc))
-                    #self.text_changed_x_y()
-
-                    self.width = wr
-                    self.height = hr
-                    print('wr: ' + str(wr) + '; hr: ' +str(hr))
-                    #self.text_changed_w_h()
-
-                    #print type(self.no_beads+0.0)
-                    self.round_factor = round(c_factor,2)
-                    #self.text_changed_round()
-
+            if self.UI.init_flag:
+                self.update_UI()
             self.time_refresh = time.clock()
 
-    def value_changed(self,value,ref_text):
-        print('bead value changed: '+ref_text)
+    def update_UI(self):
+        for i in [1]:
+            for key in ['focus','round','nbead','centerx','centery','width','height']:
+                widget_str = 'self.UI.bead_'+key+str(i)
+                value_str = 'self.'+key+str(i)
+                vars()[widget_str].set_value(vars()[value_str])
+            print('bead value changed: '+key)
 
 
     #returns picture after thresholding

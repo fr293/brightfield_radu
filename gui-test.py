@@ -30,6 +30,7 @@ class GUIWindow(QMainWindow):
     #constructor
     def __init__(self):
         super(GUIWindow,self).__init__()
+        self.init_flag = False
 
         #serial power supply
         if sandbox == True:
@@ -43,13 +44,15 @@ class GUIWindow(QMainWindow):
         self.thread_ps.start()
         self.thread_cont = ThreadControl(self)
         self.thread_cont.start()
-        self.thread_det = ThreadDetection()
+        self.thread_det = ThreadDetection(self)
         self.thread_det.start()
 
         if sandbox == False:
             self.disp_widget = DisplayWidget(self.thread_det)
 
         self.initUI()
+
+        self.init_flag = True
 
     def __del__(self):
         self.thread_ps.done_ps=True
@@ -166,7 +169,7 @@ class GUIWindow(QMainWindow):
         detection_group.setFixedWidth(250)
 
         #camera groups
-        for i in range(1,3):
+        for i in [1,2]:
             vbox = QVBoxLayout()
             dict = {'focus':['Focus',[4,2],1.31],
                     'round':['Round',[4,2],1.31],
