@@ -113,6 +113,8 @@ class GUIWindow(QMainWindow):
         self.disp_group.setLayout(vbox)
 
     def create_bead_group(self):
+        self.bead_dict = {}
+
         #display settings group
         vbox = QVBoxLayout()
         self.bead_zoom_sbox = SpinBoxWidget(['Zoom','','zoom'],6,[1,1,25],[4,1],self.thread_det.value_changed,False)
@@ -125,10 +127,12 @@ class GUIWindow(QMainWindow):
         vbox_ = QVBoxLayout()
         self.bead_fps_sbox = SpinBoxWidget(['FPS','','set_fps'],10,[0,1,20],[2,0],self.thread_det.value_changed,False)
         vbox_.addWidget(self.bead_fps_sbox)
-        self.bead_fps = ValueDisplayWidget('Actual FPS',[4,1],10)
-        vbox_.addWidget(self.bead_fps)
-        self.bead_deltat = ValueDisplayWidget('Delta t',[5,1],100)
-        vbox_.addWidget(self.bead_deltat)
+        self.bead_dict['max_fps'] = ValueDisplayWidget('Max FPS',[2,0],0)
+        vbox_.addWidget(self.bead_dict['max_fps'])
+        self.bead_dict['fps'] = ValueDisplayWidget('Actual FPS',[2,0],0)
+        vbox_.addWidget(self.bead_dict['fps'])
+        self.bead_dict['dt_fps'] = ValueDisplayWidget(['Delta t','ms'],[2,0],0)
+        vbox_.addWidget(self.bead_dict['dt_fps'])
         group.setLayout(vbox_)
         vbox.addWidget(group)
 
@@ -140,9 +144,9 @@ class GUIWindow(QMainWindow):
 
         #bead detection settings group
         vbox = QVBoxLayout()
-        self.bead_size_sbox = SpinBoxWidget(['Bead Size','um','size'],40,[20,20,260],[4,1],self.thread_det.value_changed,False)
+        self.bead_size_sbox = SpinBoxWidget(['Bead Size','um','bead_size'],41.13,[20,0.01,60],[5,2],self.thread_det.value_changed,False)
         vbox.addWidget(self.bead_size_sbox)
-        dict = {'area':['Area',[600,1500],[0,100],[10,100],[10000,10000],5,0],
+        dict = {'area':['Area',[700,9900],[0,100],[10,100],[10000,10000],5,0],
              'circ':['Circularity',[0.8,1.23],[0.5,0.5],[0.01,0.01],[1.5,1.5],4,2],
              'thresh1':['Threshold 1',[80,250],[1,1],[1,10],[255,255],3,0],
              'thresh2':['Threshold 2',[80,250],[1,1],[1,10],[255,255],3,0]}
@@ -155,10 +159,10 @@ class GUIWindow(QMainWindow):
             hbox.addStretch(2)
 
             widget_str = 'self.bead_'+key+'min_sbox'
-            vars()[widget_str] = SpinBoxWidget(['min','',key+'min'],val[1][0],[val[2][0],val[3][0],val[4][0]],[val[5],val[6]],self.thread_det.value_changed,False)
+            vars()[widget_str] = SpinBoxWidget(['min','',key+'_min'],val[1][0],[val[2][0],val[3][0],val[4][0]],[val[5],val[6]],self.thread_det.value_changed,False)
             hbox.addWidget(vars()[widget_str])
             widget_str = 'self.bead_'+key+'max_sbox'
-            vars()[widget_str] = SpinBoxWidget(['max','',key+'max'],val[1][1],[val[2][1],val[3][1],val[4][1]],[val[5],val[6]],self.thread_det.value_changed,False)
+            vars()[widget_str] = SpinBoxWidget(['max','',key+'_max'],val[1][1],[val[2][1],val[3][1],val[4][1]],[val[5],val[6]],self.thread_det.value_changed,False)
             hbox.addWidget(vars()[widget_str])
 
             vbox.addLayout(hbox)
@@ -174,16 +178,16 @@ class GUIWindow(QMainWindow):
             dict = {'focus':['Focus',[4,2],1.31],
                     'round':['Round',[4,2],1.31],
                     'nbead':['No. of Beads',[1,0],1],
-                    'centerx':['Center x',[4,0],991],
-                    'centery':['Center y',[4,0],1040],
-                    'width':['Width',[4,0],85],
-                    'height':['Height',[4,0],84],
+                    'centerx':[['Center x','px'],[4,0],991],
+                    'centery':[['Center y','px'],[4,0],1040],
+                    'width':[['Width','px'],[4,0],85],
+                    'height':[['Height','px'],[4,0],84],
                     }
             for key in ['focus','round','nbead','centerx','centery','width','height']:
                 val = dict[key]
-                widget_str = 'self.bead_'+key+str(i)
-                vars()[widget_str] = ValueDisplayWidget(val[0],val[1],val[2])
-                vbox.addWidget(vars()[widget_str])
+                widget_str = key+str(i)
+                self.bead_dict[widget_str] = ValueDisplayWidget(val[0],val[1],val[2])
+                vbox.addWidget(self.bead_dict[widget_str])
             vbox.addStretch(1)
             if i == 1:
                 cam1_group = QGroupBox('CAMERA 1')

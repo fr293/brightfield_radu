@@ -12,8 +12,16 @@ class DisplayWidget(QWidget):
         self.thread_det = thread
         self.draw_flag = False
         self.time_refresh = 0
-        self.scale = 0.1
-        self.bead_size = 41.13
+        self.bead_size = self.thread_det.bead_size
+
+        self.camera_xres = self.thread_det.xres
+        self.camera_yres = self.thread_det.yres
+
+        self.xres = 300
+        self.yres = self.xres*(float(self.camera_yres)/self.camera_xres)
+        self.scale = float(self.xres)/self.camera_xres
+        self.scale_sm = self.scale
+        print(self.scale)
 
     def paintEvent(self, *args, **kwargs):
         self.getFrames()
@@ -27,35 +35,57 @@ class DisplayWidget(QWidget):
     def getFrames(self):
         if self.thread_det.time_refresh > self.time_refresh:
             self.draw_flag = True
+
             self.n_frame_rect = self.thread_det.n_frame_rect
             self.n_frame = self.thread_det.n_frame
-            self.time_refresh = self.thread_det.time_refresh
             self.n_frame_beads = self.thread_det.n_frame_beads
             self.cn_frame = self.thread_det.cn_frame
             self.cn_frame_sobel = self.thread_det.cn_frame_sobel
-            self.bead_size = self.thread_det.bead_size
-            self.no_beads = self.thread_det.no_beads
+            self.nbead1 = self.thread_det.nbead1
+
+            self.n_frame_rect2 = self.thread_det.n_frame_rect2
+            self.n_frame2 = self.thread_det.n_frame2
+            self.n_frame_beads2 = self.thread_det.n_frame_beads2
+            self.cn_frame2 = self.thread_det.cn_frame2
+            self.cn_frame_sobel2 = self.thread_det.cn_frame_sobel2
+            self.nbead2 = self.thread_det.nbead2
+
+            self.time_refresh = self.thread_det.time_refresh
 
     def drawFrames(self, qp):
-        #Qt frame
-        q_frame = NumPyQImage(self.n_frame_rect)                 # Qt frame
-        self.n_frame_cam1 = self.n_frame
-        #scaled Qt frame
-        sq_frame = q_frame.scaled(q_frame.width()*self.scale,q_frame.height()*self.scale,) # resize # small Qt frame
-        qp.drawImage(QPoint(20, 20), sq_frame)
-        if self.no_beads > 0:
-            q_frame_beads = NumPyQImage(self.n_frame_beads)   # convert to QImage
-            sq_frame_beads = q_frame_beads.scaled(q_frame_beads.width()*self.scale,q_frame_beads.height()*self.scale,) # resize
-            qp.drawImage(QPoint(20, 250), sq_frame_beads)  # Display the frame
+        #camera 1
+        q_frame = NumPyQImage(self.n_frame_rect)#convert to QImage
+        sq_frame = q_frame.scaled(q_frame.width()*self.scale,q_frame.height()*self.scale,) #resize
+        qp.drawImage(QPoint(20, 20), sq_frame) #display
+        if self.nbead1 > 0:
+            q_frame_beads = NumPyQImage(self.n_frame_beads)
+            sq_frame_beads = q_frame_beads.scaled(q_frame_beads.width()*self.scale_sm,q_frame_beads.height()*self.scale_sm,)
+            qp.drawImage(QPoint(20, self.yres+40), sq_frame_beads)
 
-            cq_frame = NumPyQImage(self.cn_frame) # convert to QImage
+            cq_frame = NumPyQImage(self.cn_frame)
             scq_frame = cq_frame.scaled(cq_frame.width()/2, cq_frame.height()/2,)
-            qp.drawImage(QPoint(20, 500), scq_frame)  # Display the frame
+            qp.drawImage(QPoint(20, 2*self.yres+60), scq_frame)
 
-            cq_frame_sobel = NumPyQImage(self.cn_frame_sobel) # convert to QImage
+            cq_frame_sobel = NumPyQImage(self.cn_frame_sobel)
             scq_frame_sobel = cq_frame_sobel.scaled(cq_frame_sobel.width()/2, cq_frame_sobel.height()/2,)
-            qp.drawImage(QPoint(200, 500), scq_frame_sobel)  # Display the frame
-        
+            qp.drawImage(QPoint(200, 2*self.yres+60), scq_frame_sobel)
+        #camera 2
+        q_frame2 = NumPyQImage(self.n_frame_rect2)#convert to QImage
+        sq_frame2 = q_frame2.scaled(q_frame2.width()*self.scale,q_frame2.height()*self.scale,) #resize
+        qp.drawImage(QPoint(self.xres+40, 20), sq_frame2) #display
+        if self.nbead2 > 0:
+            q_frame_beads2 = NumPyQImage(self.n_frame_beads2)
+            sq_frame_beads2 = q_frame_beads2.scaled(q_frame_beads2.width()*self.scale_sm,q_frame_beads2.height()*self.scale_sm,)
+            qp.drawImage(QPoint(self.xres+40, self.yres+40), sq_frame_beads2)
+
+            cq_frame2 = NumPyQImage(self.cn_frame2)
+            scq_frame2 = cq_frame2.scaled(cq_frame2.width()/2, cq_frame2.height()/2,)
+            qp.drawImage(QPoint(self.xres+40, 2*self.yres+60), scq_frame2)
+
+            cq_frame_sobel2 = NumPyQImage(self.cn_frame_sobel2)
+            scq_frame_sobel2 = cq_frame_sobel2.scaled(cq_frame_sobel2.width()/2, cq_frame_sobel2.height()/2,)
+            qp.drawImage(QPoint(self.xres+220, 2*self.yres+60), scq_frame_sobel2)
+
 #CLASS to convert NumPy to QImage
 class NumPyQImage(QImage):
     def __init__(self, numpyImg):
