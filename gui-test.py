@@ -69,6 +69,7 @@ class GUIWindow(QMainWindow):
         self.setWindowTitle('Magnetic Bead Experiment')
         self.setWindowIcon(QIcon('icon.png'))
 
+        self.bead_dict = {}
         self.create_ps_group()
         self.create_magnet_group()
         self.create_act_group()
@@ -113,8 +114,6 @@ class GUIWindow(QMainWindow):
         self.disp_group.setLayout(vbox)
 
     def create_bead_group(self):
-        self.bead_dict = {}
-
         #display settings group
         vbox = QVBoxLayout()
         self.bead_zoom_sbox = SpinBoxWidget(['Zoom','','zoom'],6,[1,1,25],[4,1],self.thread_det.value_changed,False)
@@ -235,10 +234,10 @@ class GUIWindow(QMainWindow):
         label = QLabel('PS Curr.')
         hbox.addWidget(label)
         vbox_.addLayout(hbox)
-        self.set_current_list = []
+        self.set_current_sbox = []
         for i in range(4):
-            self.set_current_list.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
-            vbox_.addWidget(self.set_current_list[i])
+            self.set_current_sbox.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
+            vbox_.addWidget(self.set_current_sbox[i])
         group.setLayout(vbox_)
         vbox.addWidget(group)
 
@@ -270,14 +269,15 @@ class GUIWindow(QMainWindow):
         #move tab
         magnet_move_widget = QWidget()
         vbox_ = QVBoxLayout()
-        self.magnet_x_sbox = SpinBoxWidget(['x','mm','x'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
-        self.magnet_y_sbox = SpinBoxWidget(['y','mm','y'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
-        self.magnet_z_sbox = SpinBoxWidget(['z','mm','z'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
+        self.magnet_set_pos_sbox = []
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['x','mm','x'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['y','mm','y'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['z','mm','z'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
         self.magnet_absrel_tbutton = DoubleToggleButtonWidget(['Absolute','Relative'],self.thread_cont.absrel_toggle,'radio')
         self.magnet_start_tbutton = DoubleToggleButtonWidget(['Start','Stop'],self.thread_cont.start_toggle)
-        vbox_.addWidget(self.magnet_x_sbox)
-        vbox_.addWidget(self.magnet_y_sbox)
-        vbox_.addWidget(self.magnet_z_sbox)
+        vbox_.addWidget(self.magnet_set_pos_sbox[0])
+        vbox_.addWidget(self.magnet_set_pos_sbox[1])
+        vbox_.addWidget(self.magnet_set_pos_sbox[2])
         vbox_.addWidget(self.magnet_absrel_tbutton)
         vbox_.addWidget(self.magnet_start_tbutton)
         vbox_.addStretch(1)
@@ -291,12 +291,13 @@ class GUIWindow(QMainWindow):
 
 
         vbox_ = QVBoxLayout()
-        self.bead_posx = ValueDisplayWidget(['Bead Position x','mm'],[6,3])
-        vbox_.addWidget(self.bead_posx)
-        self.bead_posy = ValueDisplayWidget(['Bead Position y','mm'],[6,3])
-        vbox_.addWidget(self.bead_posy)
-        self.bead_posz = ValueDisplayWidget(['Bead Position z','mm'],[6,3])
-        vbox_.addWidget(self.bead_posz)
+        self.bead_dict['position'] = []
+        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position x','mm'],[6,3]))
+        vbox_.addWidget(self.bead_dict['position'][0])
+        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position y','mm'],[6,3]))
+        vbox_.addWidget(self.bead_dict['position'][1])
+        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position z','mm'],[6,3]))
+        vbox_.addWidget(self.bead_dict['position'][2])
         vbox_.addWidget(self.magnet_tab)
         vbox_.addStretch(1)
         group.setLayout(vbox_)
@@ -357,8 +358,7 @@ class GUIWindow(QMainWindow):
 
     def ps_mode_changed(self,tab_index):
         #turn off power supply on mode change
-        if self.ps_cont_tbutton.toggle_flag == 1:
-                self.ps_cont_tbutton.toggle()
+        self.ps_cont_tbutton.set_toggle(False)
         #continuous mode
         if tab_index == 0:
             print('cont mode')
