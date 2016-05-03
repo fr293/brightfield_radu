@@ -7,7 +7,6 @@ from PySide.QtGui import *
 from spin_box_widget_class import *
 from thread_power_supply_class import *
 from button_widget_class import *
-from thread_detection_class import *
 
 class Axis:
     def __init__(self,axis_name):

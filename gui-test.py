@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-sandbox = False
+sandbox = True
 
 import sys
 from math import *
@@ -47,10 +47,14 @@ class GUIWindow(QMainWindow):
         self.thread_det = ThreadDetection(self)
         self.thread_det.start()
 
+
         if sandbox == False:
             self.disp_widget = DisplayWidget(self.thread_det)
 
         self.initUI()
+
+        self.thread_act = ThreadActuator(self,[self.xaxis,self.yaxis,self.y2axis])
+        self.thread_act.start()
 
         self.init_flag = True
 
@@ -344,7 +348,6 @@ class GUIWindow(QMainWindow):
             gbox = QGroupBox(axis_label+'-axis')
             gbox.setLayout(vars()[axis_str].vbox)
             vbox.addWidget(gbox)
-
         vbox.addStretch(1)
         #add everything to group box
         self.act_group = QGroupBox('ACTUATOR CONTROL PANEL')

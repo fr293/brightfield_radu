@@ -11,7 +11,4 @@ class ThreadActuator(QThread,axis_list):
         self.axis_list = axis_list
 
     def run(self):
-
-
-        for axis in axis_list
-            if axis.
+        print('thread act done')
