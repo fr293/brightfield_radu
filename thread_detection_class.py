@@ -18,6 +18,14 @@ class ThreadDetection(QThread):
         super(ThreadDetection, self).__init__()
         self.UI = UI
 
+        #camera parameters
+        self.resx = 1200
+        self.resy = 800
+        self.res = 0.0005 #mm per px
+        self.offsetx = 0
+        self.offsety = 0
+        self.offsetz = 0
+
         self.time_refresh = 0
         self.detect_flag = True
         
@@ -27,9 +35,13 @@ class ThreadDetection(QThread):
         self.circ_max = 1.23
         self.thresh1_min = 80
         self.thresh1_max = 250
+        self.thresh2_min = 80
+        self.thresh2_max = 250
         self.bead_size = 41.13
 
         self.focus1,self.round1,self.nbead1,self.centerx1,self.centery1,self.width1,self.height1 = 0,0,0,0,0,0,0
+        self.focus2,self.round2,self.nbead2,self.centerx2,self.centery2,self.width2,self.height2 = 0,0,0,0,0,0,0
+        self.position = [0,0,0]
 
         #video config
         vimba = Vimba()
@@ -43,10 +55,25 @@ class ThreadDetection(QThread):
         camcapture = vimba.getCamera(camera_ids[0])
         camcapture.openCamera()
 
-        # list camera features
-        cameraFeatureNames = camcapture.getFeatureNames()
-        for name in cameraFeatureNames:
-            print 'Camera feature:', name
+        # # list camera features
+        # cameraFeatureNames = camcapture.getFeatureNames()
+        # for name in cameraFeatureNames:
+        #     print 'Camera feature:', name
+
+        #self.resx = int(camcapture.WidthMax/2)
+        #self.resy = camcapture.HeightMax/2
+        camcapture.Width = int(self.resx)
+        camcapture.Height = int(self.resy)
+        print('Camera 1')
+        print 'resx:',camcapture.Width
+        print 'resy:',camcapture.Height
+        print 'max FPS',camcapture.AcquisitionFrameRateLimit
+        self.max_fps = camcapture.AcquisitionFrameRateLimit
+        self.set_fps = 1.0
+        self.fps = 0.0
+        self.time_fps_l = -10.0
+        self.dt_fps = 0.0
+
 
         cam1_exp_time_dec = camcapture.readRegister("F0F0081C") # address for shutter
         cam1_exp_time_base_no = int('{0:b}'.format(cam1_exp_time_dec)[20:],2)
@@ -59,15 +86,23 @@ class ThreadDetection(QThread):
         camcapture.runFeatureCommand("AcquisitionStart")
 
         #open and get second video
-        camcapture_2 = vimba.getCamera(camera_ids[1])
-        camcapture_2.openCamera()
-        cam2_exp_time_dec = camcapture_2.readRegister("F0F0081C") # address for shutter
+        camcapture2 = vimba.getCamera(camera_ids[1])
+        camcapture2.openCamera()
+
+        camcapture2.Width = int(self.resx)
+        camcapture2.Height = int(self.resy)
+        print('Camera 2')
+        print 'resx:',camcapture2.Width
+        print 'resy:',camcapture2.Height
+        print 'max FPS',camcapture2.AcquisitionFrameRateLimit
+
+        cam2_exp_time_dec = camcapture2.readRegister("F0F0081C") # address for shutter
         cam2_exp_time_base_no = int('{0:b}'.format(cam2_exp_time_dec)[20:],2)
         cam2_exp_time_ms = cam2_exp_time_base_no*0.02
-        self.frame_2 = camcapture_2.getFrame()
-        self.frame_2.announceFrame()
-        camcapture_2.startCapture()
-        camcapture_2.runFeatureCommand("AcquisitionStart")
+        self.frame2 = camcapture2.getFrame()
+        self.frame2.announceFrame()
+        camcapture2.startCapture()
+        camcapture2.runFeatureCommand("AcquisitionStart")
 
         self.time_old_ard = time.clock()
         self.index_m =1000
@@ -88,59 +123,110 @@ class ThreadDetection(QThread):
     def run(self):  # method which runs the thread
         print('Detection Thread Started')
         while True:
-            x_min = 794
-            y_min = 470
-            x_max = 1794
-            y_max = 1470
-            x_mid = int((x_min+x_max)/2.0)
-            y_mid = int((y_min+y_max)/2.0)
-            x_rez = 2588
-            y_rez = 1940
-            x11 = 735; x12 = x11 + 134
-            y11 = 770; y12 = y11 + 300
+            if (time.clock() - self.time_fps_l >=  1.0/self.set_fps):
+                self.time_fps = time.clock()
+                self.dt_fps = (self.time_fps - self.time_fps_l)*1000
+                self.fps = 1000.0/self.dt_fps
+                self.time_fps_l = self.time_fps
 
-            x21 = 870; x22 = x21 + 140
-            y21 = 580; y22 = y21 + 690
+                x_min = 794
+                y_min = 470
+                x_max = 1794
+                y_max = 1470
+                x_mid = int((x_min+x_max)/2.0)
+                y_mid = int((y_min+y_max)/2.0)
+                x_rez = 2588
+                y_rez = 1940
+                x11 = 735; x12 = x11 + 134
+                y11 = 770; y12 = y11 + 300
 
-            x31 = 1080; x32 = x31 + 155
-            y31 = 606;  y32 = y31 + 600
+                x21 = 870; x22 = x21 + 140
+                y21 = 580; y22 = y21 + 690
 
-            x41 = 1250; x42 = x41 + 180
-            y41 = 700;  y42 = y41 + 995
+                x31 = 1080; x32 = x31 + 155
+                y31 = 606;  y32 = y31 + 600
 
-            x51 = 1550; x52 = x51 + 195
-            y51 = 705;  y52 = y51 + 600
+                x41 = 1250; x42 = x41 + 180
+                y41 = 700;  y42 = y41 + 995
 
-            self.frame.queueFrameCapture()
-            self.frame.waitFrameCapture(1000)
-            frame_data = self.frame.getBufferByteData()
+                x51 = 1550; x52 = x51 + 195
+                y51 = 705;  y52 = y51 + 600
 
-            self.time_calib = time.clock()
 
-            self.n_frame = np.ndarray(buffer=frame_data, dtype=np.uint8, shape=(self.frame.height,self.frame.width))
-            self.n_frame_rect = self.n_frame.copy()
-            cv2.rectangle(self.n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
 
-            if self.detect_flag:
-                self.n_frame_beads,xr,yr,self.width1,self.height1,self.nbead1,self.centerx1,self.centery1,self.round1 = self.detect_beads(self.n_frame,
-                                                                      self.thresh1_min,self.thresh1_max,
-                                                                      self.circ_min,self.circ_max,
-                                                                      self.area_min,self.area_max)
-                if self.nbead1 > 0: # At least one bead is detected
-                    self.cn_frame = self.crop(self.n_frame,xr,yr,self.width1,self.height1,2) # croped frame with the bead // croped numpy
+                self.frame.queueFrameCapture()
+                self.frame.waitFrameCapture(1000)
+                frame_data = self.frame.getBufferByteData()
+
+                self.frame2.queueFrameCapture()
+                self.frame2.waitFrameCapture(1000)
+                frame_data2 = self.frame2.getBufferByteData()
+
+                self.time_calib = time.clock()
+
+                self.n_frame = np.ndarray(buffer=frame_data, dtype=np.uint8, shape=(self.frame.height,self.frame.width))
+                self.n_frame_rect = self.n_frame.copy()
+                #cv2.rectangle(self.n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
+
+                self.n_frame2 = np.ndarray(buffer=frame_data2, dtype=np.uint8, shape=(self.frame2.height,self.frame2.width))
+                self.n_frame_rect2 = self.n_frame2.copy()
+                #cv2.rectangle(self.n_frame_rect2,(x_min,y_min),(x_max,y_max),(255,127,127),4)
+
+
+                if self.detect_flag:
+                    #camera 1
+                    self.n_frame_beads,xr,yr,self.width1,self.height1,self.nbead1,self.centerx1,self.centery1,self.round1 = self.detect_beads(self.n_frame,
+                                                                          self.thresh1_min,self.thresh1_max,
+                                                                          self.circ_min,self.circ_max,
+                                                                          self.area_min,self.area_max)
+                    #if self.nbead1 > 0: # At least one bead is detected
+                    self.cn_frame = self.crop(self.n_frame,xr,yr,self.width1,self.height1,2) # cropped frame with the bead // cropped numpy
                     self.cn_frame_sobel = self.sobel_edge(self.cn_frame)
-            if self.UI.init_flag:
-                self.update_UI()
-            self.time_refresh = time.clock()
+
+                    mean, stdev = cv2.meanStdDev(self.cn_frame_sobel)
+                    self.focus1 = stdev[0][0]/mean[0][0]
+                    #camera 2
+                    self.n_frame_beads2,xr2,yr2,self.width2,self.height2,self.nbead2,self.centerx2,self.centery2,self.round2 = self.detect_beads(self.n_frame2,
+                                                                          self.thresh2_min,self.thresh2_max,
+                                                                          self.circ_min,self.circ_max,
+                                                                          self.area_min,self.area_max)
+                    #if self.nbead2 > 0: # At least one bead is detected
+                    self.cn_frame2 = self.crop(self.n_frame2,xr2,yr2,self.width2,self.height2,2) # cropped frame with the bead // cropped numpy
+                    self.cn_frame_sobel2 = self.sobel_edge(self.cn_frame2)
+
+                    mean, stdev = cv2.meanStdDev(self.cn_frame_sobel2)
+                    self.focus2 = stdev[0][0]/mean[0][0]
+
+                self.calculate_positions()
+
+                if self.UI.init_flag:
+                    self.update_UI()
+                self.time_refresh = time.clock()
 
     def update_UI(self):
-        for i in [1]:
-            for key in ['focus','round','nbead','centerx','centery','width','height']:
-                widget_str = 'self.UI.bead_'+key+str(i)
-                value_str = 'self.'+key+str(i)
-                vars()[widget_str].set_value(vars()[value_str])
-            print('bead value changed: '+key)
+        for key,val in zip(['fps','dt_fps','max_fps'],
+                           [self.fps,self.dt_fps,self.max_fps]):
+            self.UI.bead_dict[key].set_value(val)
+        for key,val in zip(['focus1','round1','nbead1','centerx1','centery1','width1','height1'],
+                           [self.focus1,self.round1,self.nbead1,self.centerx1,self.centery1,self.width1,self.height1]):
+            self.UI.bead_dict[key].set_value(val)
+        for key,val in zip(['focus2','round2','nbead2','centerx2','centery2','width2','height2'],
+                           [self.focus2,self.round2,self.nbead2,self.centerx2,self.centery2,self.width2,self.height2]):
+            self.UI.bead_dict[key].set_value(val)
+        for i in range(3):
+            self.UI.bead_dict['position'][i].set_value(self.position[i])
 
+    def value_changed(self,value,ref_text):
+        value_str = 'self.'+ref_text
+        exec(value_str+' = value')
+        print 'value changed',value,ref_text
+        
+    def calculate_positions(self):
+        centerx = (self.centerx1+self.centerx2)/2
+        #flip y axis
+        centery = self.resy - (self.centery1+self.centery2)/2
+        self.position[0] = self.offsetx + centerx*self.res
+        self.position[1] = self.offsety + centery*self.res
 
     #returns picture after thresholding
     def threshold_frame(self,frame,thresh_min,thresh_max):

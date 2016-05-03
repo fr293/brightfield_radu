@@ -17,7 +17,7 @@ class Axis:
         #1 action start
         #2 action in progress
         #3 action stop
-        self.move_flag = 0
+        self.move_status = 0
         self.pos_type = 'abs'
         self.move_type = 'jog'
         self.feed_vel = 0

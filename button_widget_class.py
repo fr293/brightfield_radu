@@ -155,3 +155,9 @@ class DoubleToggleButtonWidget(QWidget):
                 self.slot_off(self.toggle_flag)
             else:
                 self.slot_off()
+
+    def set_toggle(self,set_toggle_flag):
+        if set_toggle_flag == True and self.toggle_flag == False:
+            self.toggle()
+        if set_toggle_flag == False and self.toggle_flag == True:
+            self.toggle()

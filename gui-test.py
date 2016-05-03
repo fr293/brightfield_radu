@@ -73,6 +73,7 @@ class GUIWindow(QMainWindow):
         self.setWindowTitle('Magnetic Bead Experiment')
         self.setWindowIcon(QIcon('icon.png'))
 
+        self.bead_dict = {}
         self.create_ps_group()
         self.create_magnet_group()
         self.create_act_group()
@@ -129,10 +130,12 @@ class GUIWindow(QMainWindow):
         vbox_ = QVBoxLayout()
         self.bead_fps_sbox = SpinBoxWidget(['FPS','','set_fps'],10,[0,1,20],[2,0],self.thread_det.value_changed,False)
         vbox_.addWidget(self.bead_fps_sbox)
-        self.bead_fps = ValueDisplayWidget('Actual FPS',[4,1],10)
-        vbox_.addWidget(self.bead_fps)
-        self.bead_deltat = ValueDisplayWidget('Delta t',[5,1],100)
-        vbox_.addWidget(self.bead_deltat)
+        self.bead_dict['max_fps'] = ValueDisplayWidget('Max FPS',[2,0],0)
+        vbox_.addWidget(self.bead_dict['max_fps'])
+        self.bead_dict['fps'] = ValueDisplayWidget('Actual FPS',[2,0],0)
+        vbox_.addWidget(self.bead_dict['fps'])
+        self.bead_dict['dt_fps'] = ValueDisplayWidget(['Delta t','ms'],[2,0],0)
+        vbox_.addWidget(self.bead_dict['dt_fps'])
         group.setLayout(vbox_)
         vbox.addWidget(group)
 
@@ -144,9 +147,9 @@ class GUIWindow(QMainWindow):
 
         #bead detection settings group
         vbox = QVBoxLayout()
-        self.bead_size_sbox = SpinBoxWidget(['Bead Size','um','size'],40,[20,20,260],[4,1],self.thread_det.value_changed,False)
+        self.bead_size_sbox = SpinBoxWidget(['Bead Size','um','bead_size'],41.13,[20,0.01,60],[5,2],self.thread_det.value_changed,False)
         vbox.addWidget(self.bead_size_sbox)
-        dict = {'area':['Area',[600,1500],[0,100],[10,100],[10000,10000],5,0],
+        dict = {'area':['Area',[700,9900],[0,100],[10,100],[10000,10000],5,0],
              'circ':['Circularity',[0.8,1.23],[0.5,0.5],[0.01,0.01],[1.5,1.5],4,2],
              'thresh1':['Threshold 1',[80,250],[1,1],[1,10],[255,255],3,0],
              'thresh2':['Threshold 2',[80,250],[1,1],[1,10],[255,255],3,0]}
@@ -159,10 +162,10 @@ class GUIWindow(QMainWindow):
             hbox.addStretch(2)
 
             widget_str = 'self.bead_'+key+'min_sbox'
-            vars()[widget_str] = SpinBoxWidget(['min','',key+'min'],val[1][0],[val[2][0],val[3][0],val[4][0]],[val[5],val[6]],self.thread_det.value_changed,False)
+            vars()[widget_str] = SpinBoxWidget(['min','',key+'_min'],val[1][0],[val[2][0],val[3][0],val[4][0]],[val[5],val[6]],self.thread_det.value_changed,False)
             hbox.addWidget(vars()[widget_str])
             widget_str = 'self.bead_'+key+'max_sbox'
-            vars()[widget_str] = SpinBoxWidget(['max','',key+'max'],val[1][1],[val[2][1],val[3][1],val[4][1]],[val[5],val[6]],self.thread_det.value_changed,False)
+            vars()[widget_str] = SpinBoxWidget(['max','',key+'_max'],val[1][1],[val[2][1],val[3][1],val[4][1]],[val[5],val[6]],self.thread_det.value_changed,False)
             hbox.addWidget(vars()[widget_str])
 
             vbox.addLayout(hbox)
@@ -178,16 +181,16 @@ class GUIWindow(QMainWindow):
             dict = {'focus':['Focus',[4,2],1.31],
                     'round':['Round',[4,2],1.31],
                     'nbead':['No. of Beads',[1,0],1],
-                    'centerx':['Center x',[4,0],991],
-                    'centery':['Center y',[4,0],1040],
-                    'width':['Width',[4,0],85],
-                    'height':['Height',[4,0],84],
+                    'centerx':[['Center x','px'],[4,0],991],
+                    'centery':[['Center y','px'],[4,0],1040],
+                    'width':[['Width','px'],[4,0],85],
+                    'height':[['Height','px'],[4,0],84],
                     }
             for key in ['focus','round','nbead','centerx','centery','width','height']:
                 val = dict[key]
-                widget_str = 'self.bead_'+key+str(i)
-                vars()[widget_str] = ValueDisplayWidget(val[0],val[1],val[2])
-                vbox.addWidget(vars()[widget_str])
+                widget_str = key+str(i)
+                self.bead_dict[widget_str] = ValueDisplayWidget(val[0],val[1],val[2])
+                vbox.addWidget(self.bead_dict[widget_str])
             vbox.addStretch(1)
             if i == 1:
                 cam1_group = QGroupBox('CAMERA 1')
@@ -235,10 +238,10 @@ class GUIWindow(QMainWindow):
         label = QLabel('PS Curr.')
         hbox.addWidget(label)
         vbox_.addLayout(hbox)
-        self.set_current_list = []
+        self.set_current_sbox = []
         for i in range(4):
-            self.set_current_list.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
-            vbox_.addWidget(self.set_current_list[i])
+            self.set_current_sbox.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
+            vbox_.addWidget(self.set_current_sbox[i])
         group.setLayout(vbox_)
         vbox.addWidget(group)
 
@@ -270,14 +273,15 @@ class GUIWindow(QMainWindow):
         #move tab
         magnet_move_widget = QWidget()
         vbox_ = QVBoxLayout()
-        self.magnet_x_sbox = SpinBoxWidget(['x','mm','x'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
-        self.magnet_y_sbox = SpinBoxWidget(['y','mm','y'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
-        self.magnet_z_sbox = SpinBoxWidget(['z','mm','z'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False)
+        self.magnet_set_pos_sbox = []
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['x','mm','x'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['y','mm','y'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['z','mm','z'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
         self.magnet_absrel_tbutton = DoubleToggleButtonWidget(['Absolute','Relative'],self.thread_cont.absrel_toggle,'radio')
         self.magnet_start_tbutton = DoubleToggleButtonWidget(['Start','Stop'],self.thread_cont.start_toggle)
-        vbox_.addWidget(self.magnet_x_sbox)
-        vbox_.addWidget(self.magnet_y_sbox)
-        vbox_.addWidget(self.magnet_z_sbox)
+        vbox_.addWidget(self.magnet_set_pos_sbox[0])
+        vbox_.addWidget(self.magnet_set_pos_sbox[1])
+        vbox_.addWidget(self.magnet_set_pos_sbox[2])
         vbox_.addWidget(self.magnet_absrel_tbutton)
         vbox_.addWidget(self.magnet_start_tbutton)
         vbox_.addStretch(1)
@@ -291,12 +295,13 @@ class GUIWindow(QMainWindow):
 
 
         vbox_ = QVBoxLayout()
-        self.bead_posx = ValueDisplayWidget(['Bead Position x','mm'],[6,3])
-        vbox_.addWidget(self.bead_posx)
-        self.bead_posy = ValueDisplayWidget(['Bead Position y','mm'],[6,3])
-        vbox_.addWidget(self.bead_posy)
-        self.bead_posz = ValueDisplayWidget(['Bead Position z','mm'],[6,3])
-        vbox_.addWidget(self.bead_posz)
+        self.bead_dict['position'] = []
+        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position x','mm'],[6,3]))
+        vbox_.addWidget(self.bead_dict['position'][0])
+        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position y','mm'],[6,3]))
+        vbox_.addWidget(self.bead_dict['position'][1])
+        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position z','mm'],[6,3]))
+        vbox_.addWidget(self.bead_dict['position'][2])
         vbox_.addWidget(self.magnet_tab)
         vbox_.addStretch(1)
         group.setLayout(vbox_)
@@ -356,8 +361,7 @@ class GUIWindow(QMainWindow):
 
     def ps_mode_changed(self,tab_index):
         #turn off power supply on mode change
-        if self.ps_cont_tbutton.toggle_flag == 1:
-                self.ps_cont_tbutton.toggle()
+        self.ps_cont_tbutton.set_toggle(False)
         #continuous mode
         if tab_index == 0:
             print('cont mode')

@@ -102,3 +102,6 @@ class ValueDisplayWidget(QWidget):
 
     def set_value(self,value):
         self.value_label.setText(self.format_string.format(value))
+
+    def get_value(self):
+        return float(self.value_label.text())
