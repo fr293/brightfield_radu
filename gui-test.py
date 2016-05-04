@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-sandbox = True
+sandbox = False
 
 import sys
 from math import *
@@ -20,6 +20,7 @@ if sandbox == False:
 from thread_detection_class import *
 from axis_class import *
 from thread_control_class import *
+from thread_actuator_class import *
 
 import pyqtgraph as pg
 
@@ -37,6 +38,7 @@ class GUIWindow(QMainWindow):
             serial_ps = serial.Serial('COM3', 19200,timeout=0.05)
         else:
             serial_ps = serial.Serial('COM5', 19200,timeout=0.05)
+            serial_act = serial.Serial('COM8', 115200,timeout=0.05)
         atexit.register(serial_ps.close)   # to be sure that serial communication is closed
         print "serial ps open"
         
@@ -52,8 +54,7 @@ class GUIWindow(QMainWindow):
             self.disp_widget = DisplayWidget(self.thread_det)
 
         self.initUI()
-
-        self.thread_act = ThreadActuator(self,[self.xaxis,self.yaxis,self.y2axis])
+        self.thread_act = ThreadActuator(self,self.axis_list,serial_act)
         self.thread_act.start()
 
         self.init_flag = True
@@ -274,9 +275,9 @@ class GUIWindow(QMainWindow):
         magnet_move_widget = QWidget()
         vbox_ = QVBoxLayout()
         self.magnet_set_pos_sbox = []
-        self.magnet_set_pos_sbox.append(SpinBoxWidget(['x','mm','x'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
-        self.magnet_set_pos_sbox.append(SpinBoxWidget(['y','mm','y'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
-        self.magnet_set_pos_sbox.append(SpinBoxWidget(['z','mm','z'],0,[0,0.005,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['x','mm','x'],0,[-50,0.002,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['y','mm','y'],0,[-50,0.002,50],[6,3],self.thread_cont.magnet_set_changed,False))
+        self.magnet_set_pos_sbox.append(SpinBoxWidget(['z','mm','z'],0,[-50,0.002,50],[6,3],self.thread_cont.magnet_set_changed,False))
         self.magnet_absrel_tbutton = DoubleToggleButtonWidget(['Absolute','Relative'],self.thread_cont.absrel_toggle,'radio')
         self.magnet_start_tbutton = DoubleToggleButtonWidget(['Start','Stop'],self.thread_cont.start_toggle)
         vbox_.addWidget(self.magnet_set_pos_sbox[0])
@@ -345,15 +346,19 @@ class GUIWindow(QMainWindow):
         vbox = QVBoxLayout()
         self.act_estop_button = PushButtonWidget('Emergency Stop',self.act_estop)
         vbox.addWidget(self.act_estop_button)
-        for axis_label in ['x','y','y2']:
+        self.axis_list = []
+        for axis_label,axis_address in zip(['x-axis','y-axis','y2-axis'],[1,2,3]):
             #create axis object
-            axis_str = 'self.'+axis_label+'axis'
-            vars()[axis_str] = Axis(axis_label+'-axis')
+            axis = Axis(axis_label,axis_address)
+            self.axis_list.append(axis)
             #group box
-            gbox = QGroupBox(axis_label+'-axis')
-            gbox.setLayout(vars()[axis_str].vbox)
+            gbox = QGroupBox(axis_label)
+            gbox.setLayout(axis.vbox)
             vbox.addWidget(gbox)
         vbox.addStretch(1)
+        self.act_textbar = QLineEdit()
+        self.act_textbar.setReadOnly(True)
+        vbox.addWidget(self.act_textbar)
         #add everything to group box
         self.act_group = QGroupBox('ACTUATOR CONTROL PANEL')
         self.act_group.setLayout(vbox)

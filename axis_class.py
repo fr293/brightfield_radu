@@ -9,17 +9,25 @@ from thread_power_supply_class import *
 from button_widget_class import *
 
 class Axis:
-    def __init__(self,axis_name):
+    def __init__(self,axis_name,axis_address):
         self.axis_name = axis_name
+        self.axis_address = axis_address
         self.encoder_resolution = 0.05101E-3 #mm
+        self.jog_speed = 100
 
         #0 ready
         #1 action start
         #2 action in progress
         #3 action stop
         self.move_status = 0
+        #0 ready
+        #1 moving to home
+        #2 home triggered
+        #3 feeding out
+        self.home_status = 0
+        self.end_status = 0
         self.pos_type = 'abs'
-        self.move_type = 'jog'
+        self.move_type = ''
         self.feed_vel = 0
 
         self.position = 0
@@ -30,9 +38,9 @@ class Axis:
         self.encoder_set_position = 0
         self.lock_encoder_position = 0
 
-        self.value = ValueDisplayWidget(['Position','mm'],[6,3])
-        self.abs_value = ValueDisplayWidget(['Abs','mm'],[6,3])
-        self.sbox = SpinBoxWidget(['Set Position','mm'],0,[0,0.005,50],[6,3],self.set_position_changed,False)
+        self.value = ValueDisplayWidget(['Position','mm'],[7,4])
+        self.abs_value = ValueDisplayWidget(['Abs','mm'],[7,4])
+        self.sbox = SpinBoxWidget(['Set Position','mm'],0,[0,0.005,50],[7,4],self.set_position_changed,False)
         self.zero_button = PushButtonWidget('Zero',self.zero)
         self.home_button = PushButtonWidget('Home',self.home)
         self.lock_tbutton = DoubleToggleButtonWidget(['Lock','Unlock'],self.lock_toggle)
@@ -78,6 +86,9 @@ class Axis:
         self.tab.addTab(self.move_widget,'Move')
         self.tab.addTab(self.manual_widget,'Manual')
 
+        self.textbar = QLineEdit()
+        self.textbar.setReadOnly(True)
+
         self.vbox = QVBoxLayout()
         hbox = QHBoxLayout()
         hbox.addWidget(self.value)
@@ -85,13 +96,14 @@ class Axis:
         hbox.addWidget(self.abs_value)
         self.vbox.addLayout(hbox)
         self.vbox.addWidget(self.tab)
+        self.vbox.addWidget(self.textbar)
         self.widget = QWidget()
         self.widget.setLayout(self.vbox)
 
     def set_position_changed(self,value):
         print(self.axis_name + ': set position changed' + str(value))
         self.set_position = value
-        self.calculate_positions()
+        self.update_positions()
 
     def absrel_toggle(self,toggle_flag):
         if toggle_flag == True:
@@ -101,7 +113,7 @@ class Axis:
             self.pos_type = 'rel'
             print(self.axis_name + ': move type rel')
 
-        self.calculate_positions()
+        self.update_positions()
 
     def start_toggle(self,toggle_flag):
         if toggle_flag == True:
@@ -119,12 +131,20 @@ class Axis:
             print(self.axis_name + ': unlock')
 
     def jogp_toggle(self,toggle_flag):
+        self.move_type = 'jog+'
         if toggle_flag == True:
+            self.move_status = 1
             print(self.axis_name + ': jog+')
+        else:
+            self.move_status = 3
 
     def jogm_toggle(self,toggle_flag):
+        self.move_type = 'jog-'
         if toggle_flag == True:
+            self.move_status = 1
             print(self.axis_name + ': jog-')
+        else:
+            self.move_status = 3
 
     def zero(self):
         print(self.axis_name + ': zero')
@@ -138,10 +158,13 @@ class Axis:
     def feed_vel_changed(self,feed_vel):
         self.feed_vel = feed_vel
 
-    def calculate_positions(self):
-        self.position = 0
-        self.position_l = 0
-        self.encoder_position = 0
-        self.encoder_position_l = 0
-        self.set_position = 0
-        self.encoder_set_position = 0
+    def update_encoder(self,encoder_position):
+        self.encoder_position_l = self.encoder_position
+        self.encoder_position = encoder_position
+        self.update_positions()
+
+    def update_positions(self):
+        self.position = self.encoder_position*self.encoder_resolution
+        self.position_l = self.encoder_position_l*self.encoder_resolution
+
+        self.value.set_value(self.position)

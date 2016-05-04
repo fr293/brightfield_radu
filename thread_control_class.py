@@ -17,7 +17,7 @@ class ThreadControl(QThread):
         #2 action in progress
         #3 action stop
         self.move_status = 0
-        self.pos_type = 'abs'
+        self.pos_type = 'rel'
         self.move_type = 'jog'
         self.feed_vel = 0
 
@@ -48,6 +48,7 @@ class ThreadControl(QThread):
                 for i in range(4):
                     self.UI.set_current_sbox[i].spinbox.setReadOnly(True)
                 dpos = [a - b for a,b in zip(self.move_position,self.position)]
+                self.integral = [0,0,0,0]
                 self.change_currents(self.calculate_currents(dpos))
                 self.UI.ps_cont_tbutton.set_toggle(True)
                 self.move_status = 2
@@ -60,6 +61,10 @@ class ThreadControl(QThread):
                     print dpos
                     self.change_currents(self.calculate_currents(dpos))
                     print 'continue'
+                if all(i <= 0.002 for i in dpos):
+                    self.integral = [0,0,0,0]
+                    #self.move_status = 3
+                    #print 'target reached'
 
             if self.move_status == 3:
                 #enable position and current settings
@@ -69,6 +74,7 @@ class ThreadControl(QThread):
                     self.UI.set_current_sbox[i].spinbox.setReadOnly(False)
                 self.UI.ps_cont_tbutton.set_toggle(False)
                 self.move_status = 0
+                print 'stopped'
 
 
     def absrel_toggle(self,toggle_flag):
@@ -124,15 +130,19 @@ class ThreadControl(QThread):
 
     def calculate_currents(self,dposition):
         max_current = 2.5
-        current_factor = 10
+        kP = 10
+        kI = 0.5
 
         set_current_list = [0,0,0,0]
-        dpos = [0,0,0,0]
+        drive = [0,0,0,0]
+        error = [0,0,0,0]
         for i in range(3):
-            dpos[i] = dposition[i]*current_factor
-            if abs(dpos[i]) > max_current:
-                dpos[i] = max_current*dpos[i]/abs(dpos[i])
-
+            error[i] = dposition[i]
+            self.integral[i] = self.integral[i] + error[i]
+            drive[i] = error[i]*kP + self.integral[i]*kI
+            if abs(drive[i]) > max_current:
+                drive[i] = max_current*drive[i]/abs(drive[i])
+        print drive
         dict = {'x+':0,'x-':1,'y+':2,'y-':3,'z+':4,'z-':5}
         current_mapping = [[1,1,0.5,0.5],#x+
                            [0.5,0.5,1,1],#x-
@@ -142,10 +152,10 @@ class ThreadControl(QThread):
                            [-1,-1,1,1]]#z-
         for i in range(4):
             for j in range(3):
-                if dpos[j] > 0:
-                    current =  current_mapping[2*j][i]*dpos[j]
+                if drive[j] > 0:
+                    current =  current_mapping[2*j][i]*drive[j]
                 else:
-                    current =  current_mapping[2*j+1][i]*dpos[j]
+                    current =  current_mapping[2*j+1][i]*drive[j]
                 set_current_list[i] += current
 
         return set_current_list
