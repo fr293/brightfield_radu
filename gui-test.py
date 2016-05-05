@@ -24,6 +24,7 @@ from thread_actuator_class import *
 
 import pyqtgraph as pg
 
+mutex = QMutex()
 
 # ****************************************************
 # ******* CLASS - THREAD FOR GUI (main thread) *******

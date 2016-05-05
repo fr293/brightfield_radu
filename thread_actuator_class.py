@@ -1,71 +1,99 @@
 import random
 import time
+import serial
 
 from PySide.QtCore import *
 from PySide.QtGui import *
 
 class ThreadActuator(QThread):
-    def __init__(self,UI,axis_list,serial_act):
+    def __init__(self,UI,axis_list):
         super(ThreadActuator, self).__init__()
+        self.ser = serial.Serial('COM8', 115200,timeout=0.05)
         self.UI = UI
         self.axis_list = axis_list
-        self.serial = serial_act
         self.axis_dict = {}
         for axis in axis_list:
             self.axis_dict[axis.axis_address] = axis
 
     def run(self):
+        mutex = QMutex()
         initFlag = False
         rx_last = ''
         while True:
             #Get tx from arduino
-            rx = self.serial.readline()
-            #Check it's new
+            rx = self.ser.readline()
+            time.sleep(0.005)
+            cmd_address = 0
             if rx_last != rx:
-                cmd_address = 0
                 rx_last = rx
                 if rx[0:11] == 'Initialised':
                     initFlag = True
-            if initFlag == True:
+
+            #Check Arduino is initialised
+            if initFlag:
                 #Get axis address
                 if rx[0:2].isdigit():
                     cmd_address = int(rx[0:2])
-                if cmd_address in self.axis_dict:
-                    #echo rx
-                    self.axis_dict[cmd_address].textbar.setText('rx:'+rx)
-                    print(rx)
-                    #Check if encoder position
-                    if rx[2] == '+' or rx[2] == '-':
-                        self.axis_dict[cmd_address].update_encoder(int(rx[2:]))
-                    #Check if home/end stop
-                    elif rx[2:6] == 'home':
-                        self.axis_dict[cmd_address].home_status = 2
-                        print rx[2:6]
-                        print "home"
-                    elif rx[2:5] == 'end':
-                        self.axis_dict[cmd_address].end_status = 2
-                        print "end"
+                    #Check axis address is valid
+                    if cmd_address in self.axis_dict:
+                        #Print rx in axis text bar
+                        mutex.lock()
+                        self.axis_dict[cmd_address].rxbar.setText('rx:'+rx)
+                        mutex.unlock()
+                        #Check if rx is encoder position
+                        if rx[2] == '+' or rx[2] == '-':
+                            mutex.lock()
+                            self.axis_dict[cmd_address].update_encoder(int(rx[2:]))
+                            mutex.unlock()
+                        #Check if rx is home/end stop
+                        elif rx[2:4] == 'HO':
+                            self.axis_dict[cmd_address].home_status = 3
+                            print 'still homing'
+                        elif rx[2:5] == 'EN':
+                            self.axis_dict[cmd_address].end_status = 3
+                        elif rx[2:4] == 'HD':
+                            self.axis_dict[cmd_address].home_status = 0
+                            print 'finished homing'
+                #If rx does not contain axis address
                 else:
-                    #echo rx
+                    #Print rx in text bar
                     self.UI.act_textbar.setText('rx:'+rx)
-                    print(rx)
 
-            for _axis in self.axis_list:
-                if _axis.move_status == 1:
-                    if _axis.move_type == 'jog+':
-                        buf = '{0:02}JG+{1}\n'.format(_axis.axis_address,_axis.jog_speed)
-                        self.serial.write(buf)
-                        _axis.textbar.setText('tx:'+buf)
-                    elif _axis.move_type == 'jog-':
-                        buf = '{0:02}JG-{1}\n'.format(_axis.axis_address,_axis.jog_speed)
-                        self.serial.write(buf)
-                        _axis.textbar.setText('tx:'+buf)
-                    _axis.move_status = 2
-                elif _axis.move_status == 3:
-                    if _axis.move_type[0:3] == 'jog':
-                        buf = '{0:02}JG0\n'.format(_axis.axis_address)
-                        self.serial.write(buf)
-                        _axis.textbar.setText('tx:'+buf)
-                    _axis.move_status = 1
+                #Axis movement
+                for _axis in self.axis_list:
+                    dt = 1000*(time.clock - _axis.last_pid_time)
+                    _axis.last_pid_time = time.clock()
+                    cmd = ''
+                    if _axis.move_status == 1:
+                        if _axis.move_type == 'jog+':
+                            cmd = self.jog(_axis.axis_address,_axis.jog_speed)
+                        elif _axis.move_type == 'jog-':
+                            cmd = self.jog(_axis.axis_address,-_axis.jog_speed)
+                        if _axis.move_type == 'pos':
+                            cmd = self.jog(_axis.axis_address,_axis.pid(dt))
+                        _axis.move_status = 2
+                    elif _axis.move_status == 3:
+                        if _axis.move_type[0:3] == 'jog':
+                            cmd = self.jog(_axis.axis_address,0)
+                        _axis.move_status = 0
+                    #Start homing sequence
+                    if _axis.home_status == 1:
+                        cmd = '{0:02}JG-{1}\n'.format(_axis.axis_address,50)
+                        _axis.home_status = 2
+
+                    if cmd != '':
+                        self.ser.write(cmd)
+                        _axis.txbar.setText('tx:'+cmd)
 
 
+
+    def do_read(self):
+        line = self.ser.readline()
+        return line
+
+    def jog(self,addr,speed):
+        if speed > 0:
+            cmd = '{0:02}JG+{1}\n'.format(addr,speed)
+        else:
+            cmd = '{0:02}JG-{1}\n'.format(addr,speed)
+        return cmd

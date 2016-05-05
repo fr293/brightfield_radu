@@ -21,9 +21,9 @@ class Axis:
         #3 action stop
         self.move_status = 0
         #0 ready
-        #1 moving to home
-        #2 home triggered
-        #3 feeding out
+        #1 move to home
+        #2 feeding home
+        #3 home triggered, feeding out
         self.home_status = 0
         self.end_status = 0
         self.pos_type = 'abs'
@@ -37,6 +37,13 @@ class Axis:
         self.set_position = 0
         self.encoder_set_position = 0
         self.lock_encoder_position = 0
+
+        self.kP = 10
+        self.kI = 0.2
+        self.kD = 0
+        self.error = 0
+        self.velocity = 0
+        self.last_pid_time = 0
 
         self.value = ValueDisplayWidget(['Position','mm'],[7,4])
         self.abs_value = ValueDisplayWidget(['Abs','mm'],[7,4])
@@ -86,8 +93,10 @@ class Axis:
         self.tab.addTab(self.move_widget,'Move')
         self.tab.addTab(self.manual_widget,'Manual')
 
-        self.textbar = QLineEdit()
-        self.textbar.setReadOnly(True)
+        self.rxbar = QLineEdit()
+        self.rxbar.setReadOnly(True)
+        self.txbar = QLineEdit()
+        self.txbar.setReadOnly(True)
 
         self.vbox = QVBoxLayout()
         hbox = QHBoxLayout()
@@ -96,7 +105,8 @@ class Axis:
         hbox.addWidget(self.abs_value)
         self.vbox.addLayout(hbox)
         self.vbox.addWidget(self.tab)
-        self.vbox.addWidget(self.textbar)
+        self.vbox.addWidget(self.rxbar)
+        self.vbox.addWidget(self.txbar)
         self.widget = QWidget()
         self.widget.setLayout(self.vbox)
 
@@ -116,12 +126,12 @@ class Axis:
         self.update_positions()
 
     def start_toggle(self,toggle_flag):
+        self.move_type = 'pos'
         if toggle_flag == True:
             self.move_flag = 1
             print(self.axis_name + ': start movement')
         else:
             self.move_flag = 3
-            self.home_flag = 0
             print(self.axis_name + ': stop movement')
 
     def lock_toggle(self,toggle_flag):
@@ -135,8 +145,9 @@ class Axis:
         if toggle_flag == True:
             self.move_status = 1
             print(self.axis_name + ': jog+')
-        else:
+        elif toggle_flag == False:
             self.move_status = 3
+            print(self.axis_name + ': jog+ stop')
 
     def jogm_toggle(self,toggle_flag):
         self.move_type = 'jog-'
@@ -150,6 +161,7 @@ class Axis:
         print(self.axis_name + ': zero')
 
     def home(self):
+        self.home_status = 1;
         print(self.axis_name + ': home')
 
     def feed_toggle(self,toggle_flag):
@@ -166,5 +178,8 @@ class Axis:
     def update_positions(self):
         self.position = self.encoder_position*self.encoder_resolution
         self.position_l = self.encoder_position_l*self.encoder_resolution
+        self.encoder_set_position = int(self.set_position/self.encoder_resolution)
 
         self.value.set_value(self.position)
+
+    def pid(self,dt):

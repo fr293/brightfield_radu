@@ -24,6 +24,7 @@ from thread_actuator_class import *
 
 import pyqtgraph as pg
 
+mutex = QMutex()
 
 # ****************************************************
 # ******* CLASS - THREAD FOR GUI (main thread) *******
@@ -32,11 +33,13 @@ class GUIWindow(QMainWindow):
     def __init__(self):
         super(GUIWindow,self).__init__()
         self.init_flag = False
-        serial_act = serial.Serial('COM8', 115200,timeout=0.05)
+
 
         self.initUI()
-        self.thread_act = ThreadActuator(self,self.axis_list,serial_act)
+        self.thread_act = ThreadActuator(self,self.axis_list)
         self.thread_act.start()
+
+
 
         self.init_flag = True
 
@@ -92,6 +95,7 @@ class GUIWindow(QMainWindow):
 
     def act_estop(self):
         print('EMERGENCY STOP')
+
 
 # ******** MAIN
 def main():
