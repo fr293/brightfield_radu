@@ -34,7 +34,7 @@ class GUIWindow(QMainWindow):
         super(GUIWindow,self).__init__()
         self.init_flag = False
 
-
+        self.mutex = QMutex()
         self.initUI()
         self.thread_act = ThreadActuator(self,self.axis_list)
         self.thread_act.start()

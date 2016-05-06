@@ -6,17 +6,24 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 
 class ThreadActuator(QThread):
+    update_trigger = Signal(int)
+    pid_trigger = Signal(float)
+    check_trigger = Signal()
     def __init__(self,UI,axis_list):
         super(ThreadActuator, self).__init__()
-        self.ser = serial.Serial('COM8', 115200,timeout=0.05)
+        self.ser = serial.Serial('COM8', 57600,timeout=0.05)
         self.UI = UI
         self.axis_list = axis_list
         self.axis_dict = {}
         for axis in axis_list:
             self.axis_dict[axis.axis_address] = axis
+            self.update_trigger.connect(axis.update_handle)
+            self.pid_trigger.connect(axis.pid)
+            self.check_trigger.connect(axis.check_move_done)
 
     def run(self):
-        mutex = QMutex()
+        mutex = self.UI.mutex
+        #mutex = QMutex()
         initFlag = False
         rx_last = ''
         while True:
@@ -42,44 +49,75 @@ class ThreadActuator(QThread):
                         mutex.unlock()
                         #Check if rx is encoder position
                         if rx[2] == '+' or rx[2] == '-':
-                            mutex.lock()
-                            self.axis_dict[cmd_address].update_encoder(int(rx[2:]))
-                            mutex.unlock()
+                            #mutex.lock()
+                            #self.axis_dict[cmd_address].update_encoder(int(rx[2:]))
+                            #mutex.unlock()
+                            self.update_trigger.emit(int(rx[2:]))
                         #Check if rx is home/end stop
                         elif rx[2:4] == 'HO':
-                            self.axis_dict[cmd_address].home_status = 3
                             print 'still homing'
-                        elif rx[2:5] == 'EN':
-                            self.axis_dict[cmd_address].end_status = 3
+                        #elif rx[2:5] == 'EN':
                         elif rx[2:4] == 'HD':
+                            mutex.lock()
                             self.axis_dict[cmd_address].home_status = 0
+                            mutex.unlock()
                             print 'finished homing'
                 #If rx does not contain axis address
                 else:
                     #Print rx in text bar
+                    mutex.lock()
                     self.UI.act_textbar.setText('rx:'+rx)
+                    mutex.unlock()
 
                 #Axis movement
                 for _axis in self.axis_list:
-                    dt = 1000*(time.clock - _axis.last_pid_time)
+                    #Loop timer
+                    mutex.lock()
+                    dt = 1000*(time.clock() - _axis.last_pid_time)
                     _axis.last_pid_time = time.clock()
+                    mutex.unlock()
+                    #Command to be transmitted
                     cmd = ''
+                    #Start movement
                     if _axis.move_status == 1:
                         if _axis.move_type == 'jog+':
                             cmd = self.jog(_axis.axis_address,_axis.jog_speed)
                         elif _axis.move_type == 'jog-':
                             cmd = self.jog(_axis.axis_address,-_axis.jog_speed)
-                        if _axis.move_type == 'pos':
-                            cmd = self.jog(_axis.axis_address,_axis.pid(dt))
+                        elif _axis.move_type == 'pos':
+                            self.pid_trigger.emit(dt)
+                            cmd = self.jog(_axis.axis_address,_axis.pid_motor_speed)
+                        mutex.lock()
                         _axis.move_status = 2
+                        mutex.unlock()
+
+                    #Continue movement
+                    elif _axis.move_status == 2:
+                        if _axis.move_type == 'pos':
+                            self.pid_trigger.emit(dt)
+                            cmd = self.jog(_axis.axis_address,_axis.pid_motor_speed)
+                        self.check_trigger.emit()
+
+                    #Check movement actually done
                     elif _axis.move_status == 3:
+                        self.check_trigger.emit()
+                    #Stop movement
+                    elif _axis.move_status == 4:
                         if _axis.move_type[0:3] == 'jog':
                             cmd = self.jog(_axis.axis_address,0)
+                        elif _axis.move_type == 'pos':
+                            cmd = self.jog(_axis.axis_address,0)
+                            print 'position reached'
+                        mutex.lock()
                         _axis.move_status = 0
+                        mutex.unlock()
+
                     #Start homing sequence
                     if _axis.home_status == 1:
-                        cmd = '{0:02}JG-{1}\n'.format(_axis.axis_address,50)
+                        cmd = '{0:02}JG-{1}\n'.format(_axis.axis_address,100)
+                        mutex.lock()
                         _axis.home_status = 2
+                        mutex.unlock()
 
                     if cmd != '':
                         self.ser.write(cmd)
@@ -95,5 +133,5 @@ class ThreadActuator(QThread):
         if speed > 0:
             cmd = '{0:02}JG+{1}\n'.format(addr,speed)
         else:
-            cmd = '{0:02}JG-{1}\n'.format(addr,speed)
+            cmd = '{0:02}JG{1}\n'.format(addr,speed)
         return cmd
