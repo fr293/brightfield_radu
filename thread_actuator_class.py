@@ -64,7 +64,9 @@ class ThreadActuator(QThread):
                     #Check axis address is valid
                     if cmd_address in self.axis_dict:
                         #Print rx in axis text bar
-                        self.axis_dict[cmd_address].rx_trigger.emit(rx)
+                        dt = 1000*(time.clock() - self.axis_dict[cmd_address].last_rx_time)
+                        self.axis_dict[cmd_address].last_rx_time = time.clock()
+                        self.axis_dict[cmd_address].rx_trigger.emit(rx + ' dt: {0}'.format(dt))
                         #Check if rx is encoder position
                         if rx[2] == '+' or rx[2] == '-':
                             self.axis_dict[cmd_address].update_positions(int(rx[2:]))
@@ -106,7 +108,8 @@ class ThreadActuator(QThread):
 
                     #Check movement actually done
                     elif _axis.move_status == 3:
-                        _axis.check_move_done()
+                        if _axis.position_update_flag:
+                            _axis.check_move_done()
                     #Stop movement
                     elif _axis.move_status == 4:
                         if _axis.move_type[0:3] == 'jog':
@@ -157,6 +160,8 @@ class Axis(QObject):
 
         super(Axis,self).__init__()
 
+        self.last_rx_time = 0
+
         self.axis_name = axis_name
         self.axis_address = axis_address
         self.encoder_resolution = 0.05101E-3 #mm
@@ -187,8 +192,8 @@ class Axis(QObject):
         self.lock_encoder_position = 0
         self.position_update_flag = False
 
-        self.kP = 1
-        self.kI = 0.7
+        self.kP = 2.7
+        self.kI = 0.08
         self.kD = 0
         self.error = 0
         self.last_error = 0
@@ -196,8 +201,8 @@ class Axis(QObject):
         self.derivative = 0
         self.velocity = 0
         self.last_pid_time = 0
-        self.integral_threshold = 100
-        self.drive_scale_factor = 0.05
+        self.integral_threshold = 700
+        self.drive_scale_factor = 0.01
         self.pid_motor_speed = 0
 
     def set_position_changed(self,value):
