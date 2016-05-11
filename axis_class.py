@@ -8,6 +8,15 @@ from spin_box_widget_class import *
 from button_widget_class import *
 
 class Axis_GUI(QObject):
+    absrel_trigger = Signal(bool)
+    start_trigger = Signal(bool)
+    home_trigger = Signal(bool)
+    lock_trigger = Signal(bool)
+    set_position_trigger = Signal(float)
+    jogp_trigger = Signal(bool)
+    jogm_trigger = Signal(bool)
+    feed_vel_trigger = Signal(float)
+    feed_trigger = Signal(bool)
     def __init__(self,axis_name,axis_address):
         super(Axis_GUI,self).__init__()
 
@@ -81,9 +90,40 @@ class Axis_GUI(QObject):
 
     def update_handle(self,position):
         self.value.set_value(position)
+        #print('position updated:{0}'.format(position))
 
     def rx_handle(self,rx):
         self.rxbar.setText('rx:'+rx)
 
     def tx_handle(self,tx):
         self.txbar.setText('tx:'+tx)
+
+    def set_position_changed(self,value):
+        self.set_position_trigger.emit(value)
+
+    def absrel_toggle(self,toggle_flag):
+        self.absrel_trigger.emit(toggle_flag)
+
+    def start_toggle(self,toggle_flag):
+        self.start_trigger.emit(toggle_flag)
+
+    def lock_toggle(self,toggle_flag):
+        self.lock_trigger.emit(toggle_flag)
+
+    def jogp_toggle(self,toggle_flag):
+        self.jogp_trigger.emit(toggle_flag)
+
+    def jogm_toggle(self,toggle_flag):
+        self.jogm_trigger.emit(toggle_flag)
+
+    def zero(self):
+        print(self.axis_name + ': zero')
+
+    def home(self):
+        print(self.axis_name + ': home')
+
+    def feed_toggle(self,toggle_flag):
+        print(self.axis_name + ': feed')
+
+    def feed_vel_changed(self,feed_vel):
+        self.feed_vel_trigger.emit(feed_vel)

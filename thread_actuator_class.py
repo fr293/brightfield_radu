@@ -9,7 +9,7 @@ class ThreadActuator(QThread):
 
     def __init__(self,UI,axis_GUI_list):
         super(ThreadActuator, self).__init__()
-        self.ser = serial.Serial('COM8', 57600,timeout=0.05)
+        self.ser = serial.Serial('COM8', 115200,timeout=0.05)
         self.UI = UI
         self.axis_GUI_list = axis_GUI_list
         self.axis_dict = {}
@@ -17,15 +17,29 @@ class ThreadActuator(QThread):
         self.axis_list = []
 
         for axis_GUI in self.axis_GUI_list:
-            axis = Axis(axis_GUI.axis_label,axis_GUI.axis_address)
+            axis = Axis(axis_GUI.axis_name,axis_GUI.axis_address)
             self.axis_list.append(axis)
 
-        for axis,axis_GUI in zip(self.axis_list,self.axis_GUI_list):
-            self.axis_dict[axis.axis_address] = axis
-            self.axis_GUI_dict[axis.axis_address] = axis_GUI
+        for axis,axis_GUI,i in zip(self.axis_list,self.axis_GUI_list,range(0,4)):
+            self.axis_dict[axis.axis_address] = self.axis_list[i]
+            self.axis_GUI_dict[axis.axis_address] = self.axis_GUI_list[i]
+
             axis.update_trigger.connect(axis_GUI.update_handle)
             axis.rx_trigger.connect(axis_GUI.rx_handle)
             axis.tx_trigger.connect(axis_GUI.tx_handle)
+            axis.start_tbutton_trigger.connect(axis_GUI.start_tbutton.set_toggle)
+
+            axis_GUI.absrel_trigger.connect(axis.absrel_toggle)
+            axis_GUI.start_trigger.connect(axis.start_toggle)
+            axis_GUI.home_trigger.connect(axis.home)
+            axis_GUI.lock_trigger.connect(axis.lock_toggle)
+            axis_GUI.set_position_trigger.connect(axis.set_position_changed)
+            axis_GUI.jogp_trigger.connect(axis.jogp_toggle)
+            axis_GUI.jogm_trigger.connect(axis.jogm_toggle)
+            axis_GUI.feed_vel_trigger.connect(axis.feed_vel_changed)
+            axis_GUI.feed_trigger.connect(axis.feed_toggle)
+
+        self.last_tx_time = 0
 
     def run(self):
         mutex = self.UI.mutex
@@ -53,9 +67,6 @@ class ThreadActuator(QThread):
                         self.axis_dict[cmd_address].rx_trigger.emit(rx)
                         #Check if rx is encoder position
                         if rx[2] == '+' or rx[2] == '-':
-                            #mutex.lock()
-                            #self.axis_dict[cmd_address].update_encoder(int(rx[2:]))
-                            #mutex.unlock()
                             self.axis_dict[cmd_address].update_positions(int(rx[2:]))
                         #Check if rx is home/end stop
                         elif rx[2:4] == 'HO':
@@ -73,11 +84,6 @@ class ThreadActuator(QThread):
 
                 #Axis movement
                 for _axis in self.axis_list:
-                    #Loop timer
-                    mutex.lock()
-                    dt = 1000*(time.clock() - _axis.last_pid_time)
-                    _axis.last_pid_time = time.clock()
-                    mutex.unlock()
                     #Command to be transmitted
                     cmd = ''
                     #Start movement
@@ -87,17 +93,16 @@ class ThreadActuator(QThread):
                         elif _axis.move_type == 'jog-':
                             cmd = self.jog(_axis.axis_address,-_axis.jog_speed)
                         elif _axis.move_type == 'pos':
-                            self.pid_trigger.emit(_axis.axis_address,dt)
-                            cmd = self.jog(_axis.axis_address,_axis.pid_motor_speed)
-                        mutex.lock()
+                            cmd = self.jog(_axis.axis_address,_axis.pid(time.clock()))
                         _axis.move_status = 2
-                        mutex.unlock()
 
                     #Continue movement
                     elif _axis.move_status == 2:
                         if _axis.move_type == 'pos':
-                            cmd = self.jog(_axis.axis_address,_axis.pid(dt))
-                        _axis.check_move_done()
+                            if _axis.position_update_flag:
+                                cmd = self.jog(_axis.axis_address,_axis.pid(time.clock()))
+                                _axis.position_update_flag = False
+                                _axis.check_move_done()
 
                     #Check movement actually done
                     elif _axis.move_status == 3:
@@ -118,7 +123,9 @@ class ThreadActuator(QThread):
 
                     if cmd != '':
                         self.ser.write(cmd)
-                        _axis.tx_handle.emit(cmd)
+                        dt = 1000*(time.clock() - self.last_tx_time)
+                        self.last_tx_time = time.clock()
+                        _axis.tx_trigger.emit(cmd + 'dt: {0}'.format(dt))
 
 
 
@@ -142,9 +149,10 @@ class ThreadActuator(QThread):
 
 
 class Axis(QObject):
-    update_trigger = Signal(int)
+    update_trigger = Signal(float)
     rx_trigger = Signal(str)
     tx_trigger = Signal(str)
+    start_tbutton_trigger = Signal(bool)
     def __init__(self,axis_name,axis_address):
 
         super(Axis,self).__init__()
@@ -177,8 +185,9 @@ class Axis(QObject):
         self.set_position = 0
         self.encoder_set_position = [0,0,0]
         self.lock_encoder_position = 0
+        self.position_update_flag = False
 
-        self.kP = 8
+        self.kP = 1
         self.kI = 0.7
         self.kD = 0
         self.error = 0
@@ -187,17 +196,16 @@ class Axis(QObject):
         self.derivative = 0
         self.velocity = 0
         self.last_pid_time = 0
-        self.integral_threshold = 50
-        self.drive_scale_factor = 0.04
+        self.integral_threshold = 100
+        self.drive_scale_factor = 0.05
         self.pid_motor_speed = 0
-
 
     def set_position_changed(self,value):
         print(self.axis_name + ': set position changed' + str(value))
         self.set_position = value
 
     def absrel_toggle(self,toggle_flag):
-        if toggle_flag == True:
+        if toggle_flag:
             self.pos_type = 'abs'
             print(self.axis_name + ': move type abs')
         else:
@@ -255,11 +263,9 @@ class Axis(QObject):
         self.encoder_position = encoder_position
         self.position = self.encoder_position*self.encoder_resolution
         self.position_l = self.encoder_position_l*self.encoder_resolution
+        self.position_update_flag = True
         self.update_trigger.emit(self.position)
 
-    #def update_handle(self):
-
-        #self.value.set_value(self.position)
 
     def update_set_positions(self):
         if self.pos_type == 'rel':
@@ -273,7 +279,10 @@ class Axis(QObject):
         print 'encoder set pos{0},{1},{2}'.format(self.encoder_set_position[0],self.encoder_set_position[1],self.encoder_set_position[2])
 
 
-    def pid(self,dt):
+    def pid(self,t):
+        dt = 1000*(t-self.last_pid_time)
+        self.last_pid_time = t
+
         self.error = self.encoder_set_position[0] - self.encoder_position
         self.last_error = self.error
         if abs(self.error) < self.integral_threshold:
@@ -287,10 +296,10 @@ class Axis(QObject):
             motor_speed = -255
         else:
             motor_speed = int(drive*self.drive_scale_factor)
-        print '{3}error: {0} int: {1} drive: {2}'.format(self.error,self.integral,drive,self.encoder_position)
+        print 'encoder pos: {3} error: {0} int: {1} drive: {2} dt: {4}'.format(self.error,self.integral,drive,self.encoder_position,dt)
 
         self.pid_motor_speed = motor_speed
-        # return motor_speed
+        return motor_speed
 
     def check_move_done(self):
         if self.move_type == 'pos':
@@ -300,7 +309,7 @@ class Axis(QObject):
                 elif self.move_status == 3:
                     self.move_status = 4
                     self.integral = 0
-                    self.start_tbutton.set_toggle(False)
+                    self.start_tbutton_trigger.emit(False)
             else:
                 if self.move_status == 3:
                     self.move_status = 2
