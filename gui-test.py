@@ -39,7 +39,6 @@ class GUIWindow(QMainWindow):
             serial_ps = serial.Serial('COM3', 19200,timeout=0.05)
         else:
             serial_ps = serial.Serial('COM5', 19200,timeout=0.05)
-            serial_act = serial.Serial('COM8', 115200,timeout=0.05)
         atexit.register(serial_ps.close)   # to be sure that serial communication is closed
         print "serial ps open"
         
@@ -50,12 +49,12 @@ class GUIWindow(QMainWindow):
         self.thread_det = ThreadDetection(self)
         self.thread_det.start()
 
-
         if sandbox == False:
             self.disp_widget = DisplayWidget(self.thread_det)
 
         self.initUI()
-        self.thread_act = ThreadActuator(self,self.axis_list,serial_act)
+        self.mutex = QMutex()
+        self.thread_act = ThreadActuator(self,self.axis_list)
         self.thread_act.start()
 
         self.init_flag = True
@@ -365,6 +364,11 @@ class GUIWindow(QMainWindow):
         self.act_group.setLayout(vbox)
         self.act_group.setFixedWidth(300)
 
+    def act_estop(self):
+        self.thread_act.estop()
+        print('EMERGENCY STOP')
+
+
     def ps_mode_changed(self,tab_index):
         #turn off power supply on mode change
         self.ps_cont_tbutton.set_toggle(False)
@@ -416,9 +420,6 @@ class GUIWindow(QMainWindow):
             print('z tracking on')
         elif toggle_flag == False:
             print('z tracking off')
-
-    def act_estop(self):
-        print('EMERGENCY STOP')
 
 # ******** MAIN
 def main():

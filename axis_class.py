@@ -177,7 +177,9 @@ class Axis(QObject):
     def feed_vel_changed(self,feed_vel):
         self.feed_vel = feed_vel
 
-    def update_handle(self,encoder_position):
+    def update_handle(self,addr,encoder_position):
+        if addr != self.axis_address:
+            return
         self.encoder_position_l = self.encoder_position
         self.encoder_position = encoder_position
         self.position = self.encoder_position*self.encoder_resolution
@@ -200,7 +202,9 @@ class Axis(QObject):
         print 'encoder set pos{0},{1},{2}'.format(self.encoder_set_position[0],self.encoder_set_position[1],self.encoder_set_position[2])
 
 
-    def pid(self,dt):
+    def pid(self,addr,dt):
+        if addr != self.axis_address:
+            return
         self.error = self.encoder_set_position[0] - self.encoder_position
         self.last_error = self.error
         if abs(self.error) < self.integral_threshold:
@@ -219,7 +223,9 @@ class Axis(QObject):
         self.pid_motor_speed = motor_speed
         # return motor_speed
 
-    def check_move_done(self):
+    def check_move_done(self,addr):
+        if addr != self.axis_address:
+            return
         if self.move_type == 'pos':
             if self.encoder_position>=self.encoder_set_position[1] and self.encoder_position<=self.encoder_set_position[2]:
                 if self.move_status == 2:

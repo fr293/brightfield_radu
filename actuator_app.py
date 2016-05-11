@@ -94,6 +94,7 @@ class GUIWindow(QMainWindow):
         self.act_group.setFixedWidth(300)
 
     def act_estop(self):
+        self.thread_act.estop()
         print('EMERGENCY STOP')
 
 

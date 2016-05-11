@@ -6,9 +6,9 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 
 class ThreadActuator(QThread):
-    update_trigger = Signal(int)
-    pid_trigger = Signal(float)
-    check_trigger = Signal()
+    update_trigger = Signal(int,int)
+    pid_trigger = Signal(int,float)
+    check_trigger = Signal(int)
     def __init__(self,UI,axis_list):
         super(ThreadActuator, self).__init__()
         self.ser = serial.Serial('COM8', 57600,timeout=0.05)
@@ -52,7 +52,7 @@ class ThreadActuator(QThread):
                             #mutex.lock()
                             #self.axis_dict[cmd_address].update_encoder(int(rx[2:]))
                             #mutex.unlock()
-                            self.update_trigger.emit(int(rx[2:]))
+                            self.update_trigger.emit(cmd_address,int(rx[2:]))
                         #Check if rx is home/end stop
                         elif rx[2:4] == 'HO':
                             print 'still homing'
@@ -85,7 +85,7 @@ class ThreadActuator(QThread):
                         elif _axis.move_type == 'jog-':
                             cmd = self.jog(_axis.axis_address,-_axis.jog_speed)
                         elif _axis.move_type == 'pos':
-                            self.pid_trigger.emit(dt)
+                            self.pid_trigger.emit(_axis.axis_address,dt)
                             cmd = self.jog(_axis.axis_address,_axis.pid_motor_speed)
                         mutex.lock()
                         _axis.move_status = 2
@@ -94,13 +94,13 @@ class ThreadActuator(QThread):
                     #Continue movement
                     elif _axis.move_status == 2:
                         if _axis.move_type == 'pos':
-                            self.pid_trigger.emit(dt)
+                            self.pid_trigger.emit(_axis.axis_address,dt)
                             cmd = self.jog(_axis.axis_address,_axis.pid_motor_speed)
-                        self.check_trigger.emit()
+                        self.check_trigger.emit(_axis.axis_address)
 
                     #Check movement actually done
                     elif _axis.move_status == 3:
-                        self.check_trigger.emit()
+                        self.check_trigger.emit(_axis.axis_address)
                     #Stop movement
                     elif _axis.move_status == 4:
                         if _axis.move_type[0:3] == 'jog':
@@ -128,6 +128,12 @@ class ThreadActuator(QThread):
     def do_read(self):
         line = self.ser.readline()
         return line
+
+    def estop(self):
+        for _axis in self.axis_list:
+            cmd = self.jog(_axis.axis_address,0)
+            self.ser.write(cmd)
+            _axis.txbar.setText('ESTOPtx:'+cmd)
 
     def jog(self,addr,speed):
         if speed > 0:
