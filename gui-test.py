@@ -54,7 +54,7 @@ class GUIWindow(QMainWindow):
 
         self.initUI()
         self.mutex = QMutex()
-        self.thread_act = ThreadActuator(self,self.axis_list)
+        self.thread_act = ThreadActuator(self,self.axis_GUI_list)
         self.thread_act.start()
 
         self.init_flag = True
@@ -346,11 +346,11 @@ class GUIWindow(QMainWindow):
         vbox = QVBoxLayout()
         self.act_estop_button = PushButtonWidget('Emergency Stop',self.act_estop)
         vbox.addWidget(self.act_estop_button)
-        self.axis_list = []
+        self.axis_GUI_list = []
         for axis_label,axis_address in zip(['x-axis','y-axis','y2-axis'],[1,2,3]):
-            #create axis object
-            axis = Axis(axis_label,axis_address)
-            self.axis_list.append(axis)
+            #create axis GUI object
+            axis = Axis_GUI(axis_label,axis_address)
+            self.axis_GUI_list.append(axis)
             #group box
             gbox = QGroupBox(axis_label)
             gbox.setLayout(axis.vbox)

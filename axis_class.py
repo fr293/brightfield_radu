@@ -7,52 +7,12 @@ from PySide.QtGui import *
 from spin_box_widget_class import *
 from button_widget_class import *
 
-class Axis(QObject):
+class Axis_GUI(QObject):
     def __init__(self,axis_name,axis_address):
-        super(Axis,self).__init__()
+        super(Axis_GUI,self).__init__()
 
         self.axis_name = axis_name
         self.axis_address = axis_address
-        self.encoder_resolution = 0.05101E-3 #mm
-        self.encoder_set_position_threshold = 1
-        self.jog_speed = 100
-
-        #0 ready
-        #1 action start
-        #2 action in progress
-        #3 action stop
-        self.move_status = 0
-        #0 ready
-        #1 move to home
-        #2 feeding home
-        #3 home triggered, feeding out
-        self.home_status = 0
-        self.end_status = 0
-        self.pos_type = 'rel'
-        self.move_type = ''
-        self.feed_vel = 0
-
-        self.position = 0
-        self.position_l = 0
-        self.encoder_position = 0
-        self.encoder_position_l = 0
-        self.set_position = 0
-        self.encoder_set_position = [0,0,0]
-        self.lock_encoder_position = 0
-
-        self.kP = 8
-        self.kI = 0.7
-        self.kD = 0
-        self.error = 0
-        self.last_error = 0
-        self.integral = 0
-        self.derivative = 0
-        self.velocity = 0
-        self.last_pid_time = 0
-        self.integral_threshold = 50
-        self.drive_scale_factor = 0.04
-        self.pid_motor_speed = 0
-
 
         self.value = ValueDisplayWidget(['Position','mm'],[7,4])
         self.abs_value = ValueDisplayWidget(['Abs','mm'],[7,4])
@@ -119,121 +79,11 @@ class Axis(QObject):
         self.widget = QWidget()
         self.widget.setLayout(self.vbox)
 
-    def set_position_changed(self,value):
-        print(self.axis_name + ': set position changed' + str(value))
-        self.set_position = value
+    def update_handle(self,position):
+        self.value.set_value(position)
 
-    def absrel_toggle(self,toggle_flag):
-        if toggle_flag == True:
-            self.pos_type = 'abs'
-            print(self.axis_name + ': move type abs')
-        else:
-            self.pos_type = 'rel'
-            print(self.axis_name + ': move type rel')
+    def rx_handle(self,rx):
+        self.rxbar.setText('rx:'+rx)
 
-    def start_toggle(self,toggle_flag):
-        self.move_type = 'pos'
-        if toggle_flag == True:
-            self.update_set_positions()
-            self.move_status = 1
-            print(self.axis_name + ': start movement')
-        else:
-            self.move_status = 4
-            print(self.axis_name + ': stop movement')
-
-    def lock_toggle(self,toggle_flag):
-        if toggle_flag == True:
-            print(self.axis_name + ': lock')
-        else:
-            print(self.axis_name + ': unlock')
-
-    def jogp_toggle(self,toggle_flag):
-        self.move_type = 'jog+'
-        if toggle_flag == True:
-            self.move_status = 1
-            print(self.axis_name + ': jog+')
-        elif toggle_flag == False:
-            self.move_status = 4
-            print(self.axis_name + ': jog+ stop')
-
-    def jogm_toggle(self,toggle_flag):
-        self.move_type = 'jog-'
-        if toggle_flag == True:
-            self.move_status = 1
-            print(self.axis_name + ': jog-')
-        else:
-            self.move_status = 4
-
-    def zero(self):
-        print(self.axis_name + ': zero')
-
-    def home(self):
-        self.home_status = 1
-        print(self.axis_name + ': home')
-
-    def feed_toggle(self,toggle_flag):
-        print(self.axis_name + ': feed' + str(self.feed_vel))
-
-    def feed_vel_changed(self,feed_vel):
-        self.feed_vel = feed_vel
-
-    def update_handle(self,addr,encoder_position):
-        if addr != self.axis_address:
-            return
-        self.encoder_position_l = self.encoder_position
-        self.encoder_position = encoder_position
-        self.position = self.encoder_position*self.encoder_resolution
-        self.position_l = self.encoder_position_l*self.encoder_resolution
-        self.value.set_value(self.position)
-
-    #def update_handle(self):
-
-        #self.value.set_value(self.position)
-
-    def update_set_positions(self):
-        if self.pos_type == 'rel':
-            self.encoder_set_position[0] = int((self.position+self.set_position)/self.encoder_resolution)
-            self.encoder_set_position[1] = self.encoder_set_position[0]-self.encoder_set_position_threshold
-            self.encoder_set_position[2] = self.encoder_set_position[0]+self.encoder_set_position_threshold
-        elif self.pos_type == 'abs':
-            self.encoder_set_position[0] = int(self.set_position/self.encoder_resolution)
-            self.encoder_set_position[1] = self.encoder_set_position[0]-self.encoder_set_position_threshold
-            self.encoder_set_position[2] = self.encoder_set_position[0]+self.encoder_set_position_threshold
-        print 'encoder set pos{0},{1},{2}'.format(self.encoder_set_position[0],self.encoder_set_position[1],self.encoder_set_position[2])
-
-
-    def pid(self,addr,dt):
-        if addr != self.axis_address:
-            return
-        self.error = self.encoder_set_position[0] - self.encoder_position
-        self.last_error = self.error
-        if abs(self.error) < self.integral_threshold:
-            self.integral += self.error
-        derivative = (self.error-self.last_error)/dt
-        drive = self.error*self.kP + self.integral*self.kI
-
-        if drive*self.drive_scale_factor > 255:
-            motor_speed = 255
-        elif drive*self.drive_scale_factor < -255:
-            motor_speed = -255
-        else:
-            motor_speed = int(drive*self.drive_scale_factor)
-        print '{3}error: {0} int: {1} drive: {2}'.format(self.error,self.integral,drive,self.encoder_position)
-
-        self.pid_motor_speed = motor_speed
-        # return motor_speed
-
-    def check_move_done(self,addr):
-        if addr != self.axis_address:
-            return
-        if self.move_type == 'pos':
-            if self.encoder_position>=self.encoder_set_position[1] and self.encoder_position<=self.encoder_set_position[2]:
-                if self.move_status == 2:
-                    self.move_status = 3
-                elif self.move_status == 3:
-                    self.move_status = 4
-                    self.integral = 0
-                    self.start_tbutton.set_toggle(False)
-            else:
-                if self.move_status == 3:
-                    self.move_status = 2
+    def tx_handle(self,tx):
+        self.txbar.setText('tx:'+tx)
