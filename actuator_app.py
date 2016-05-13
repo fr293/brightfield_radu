@@ -39,14 +39,13 @@ class GUIWindow(QMainWindow):
         self.thread_act = ThreadActuator(self,self.axis_GUI_list)
         self.thread_act.start()
 
-
-
         self.init_flag = True
 
     def __del__(self):
-        self.thread_ps.done_ps=True
-        self.thread_ps.wait()
-        print "Exit"             
+        print 'Exiting'
+        self.thread_act.exit()
+        self.thread_act.wait()
+        print "Exit"
 
 # Initialisation of GUI interface
     def initUI(self):

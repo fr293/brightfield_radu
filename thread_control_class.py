@@ -7,7 +7,9 @@ from PySide.QtGui import *
 class ThreadControl(QThread):
     def __init__(self,UI):
         super(ThreadControl, self).__init__()
+
         self.set_position = [0,0,0] #value set in UI
+
         self.UI = UI
 
         self.manual_base_current = 0
@@ -24,6 +26,7 @@ class ThreadControl(QThread):
         self.position = [0,0,0] #current position
         self.position_l = [0,0,0] #last position
         self.move_position = [0,0,0] #target position
+
 
     def run(self):  # method which runs the thread
                     # it will be started from main thread
@@ -75,6 +78,7 @@ class ThreadControl(QThread):
                 self.UI.ps_cont_tbutton.set_toggle(False)
                 self.move_status = 0
                 print 'stopped'
+
 
 
     def absrel_toggle(self,toggle_flag):

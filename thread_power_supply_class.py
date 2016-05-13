@@ -307,6 +307,12 @@ class ThreadPowerSupply(QThread):
         self.do_and_nowait('Set_Local\r\n')
         print "Done with Power Supply thread"      # to be converted into a comment
 
+    def set_current_changed(self,i,value):
+        self.current_value[i] = value
+        self.current_changed[i] = True
+        self.current_refresh[i] = 1
+        print('current '+ str(i) +' changed: '+str(value))
+
     def led_toggle(self,toggle_flag):
         if toggle_flag == True:
             print('LED power on')

@@ -10,12 +10,13 @@ from button_widget_class import *
 class Axis_GUI(QObject):
     absrel_trigger = Signal(bool)
     start_trigger = Signal(bool)
-    home_trigger = Signal(bool)
+    home_trigger = Signal()
+    zero_trigger = Signal()
     lock_trigger = Signal(bool)
     set_position_trigger = Signal(float)
     jogp_trigger = Signal(bool)
     jogm_trigger = Signal(bool)
-    feed_vel_trigger = Signal(float)
+    feed_velocity_trigger = Signal(float)
     feed_trigger = Signal(bool)
     def __init__(self,axis_name,axis_address):
         super(Axis_GUI,self).__init__()
@@ -24,8 +25,8 @@ class Axis_GUI(QObject):
         self.axis_address = axis_address
 
         self.value = ValueDisplayWidget(['Position','mm'],[7,4])
-        self.abs_value = ValueDisplayWidget(['Abs','mm'],[7,4])
-        self.sbox = SpinBoxWidget(['Set Position','mm'],0,[0,0.005,50],[7,4],self.set_position_changed,False)
+        self.velocity_value = ValueDisplayWidget(['Velocity','mm/s'],[7,4])
+        self.sbox = SpinBoxWidget(['Set Position','mm'],0,[-25,0.005,25],[7,4],self.set_position_changed,False)
         self.zero_button = PushButtonWidget('Zero',self.zero)
         self.home_button = PushButtonWidget('Home',self.home)
         self.lock_tbutton = DoubleToggleButtonWidget(['Lock','Unlock'],self.lock_toggle)
@@ -33,7 +34,7 @@ class Axis_GUI(QObject):
         self.start_tbutton = DoubleToggleButtonWidget(['Start','Stop'],self.start_toggle)
         self.jogp_mbutton = MomentaryButtonWidget('Jog +',self.jogp_toggle)
         self.jogm_mbutton = MomentaryButtonWidget('Jog -',self.jogm_toggle)
-        self.feed_sbox = SpinBoxWidget(['Feed Velocity','mm/s'],0,[-10,0.5,10],[4,1],self.feed_vel_changed,False)
+        self.feed_sbox = SpinBoxWidget(['Feed Velocity','mm/s'],0,[-10,0.01,10],[5,2],self.feed_velocity_changed,False)
         self.feed_tbutton = DoubleToggleButtonWidget(['Start','Stop','Feed Axis'],self.feed_toggle)
 
         #tabs
@@ -80,16 +81,21 @@ class Axis_GUI(QObject):
         hbox = QHBoxLayout()
         hbox.addWidget(self.value)
         hbox.addStretch(1)
-        hbox.addWidget(self.abs_value)
+        hbox.addWidget(self.velocity_value)
         self.vbox.addLayout(hbox)
         self.vbox.addWidget(self.tab)
-        self.vbox.addWidget(self.rxbar)
-        self.vbox.addWidget(self.txbar)
+
+        hbox = QHBoxLayout()
+        hbox.addWidget(self.rxbar)
+        hbox.addWidget(self.txbar)
+        self.vbox.addLayout(hbox)
+
         self.widget = QWidget()
         self.widget.setLayout(self.vbox)
 
-    def update_handle(self,position):
+    def update_handle(self,position,velocity):
         self.value.set_value(position)
+        self.velocity_value.set_value(velocity)
         #print('position updated:{0}'.format(position))
 
     def rx_handle(self,rx):
@@ -117,13 +123,13 @@ class Axis_GUI(QObject):
         self.jogm_trigger.emit(toggle_flag)
 
     def zero(self):
-        print(self.axis_name + ': zero')
+        self.zero_trigger.emit()
 
     def home(self):
-        print(self.axis_name + ': home')
+        self.home_trigger.emit()
 
     def feed_toggle(self,toggle_flag):
-        print(self.axis_name + ': feed')
+        self.feed_trigger.emit(toggle_flag)
 
-    def feed_vel_changed(self,feed_vel):
-        self.feed_vel_trigger.emit(feed_vel)
+    def feed_velocity_changed(self,feed_velocity):
+        self.feed_velocity_trigger.emit(feed_velocity)

@@ -19,8 +19,8 @@ class ThreadDetection(QThread):
         self.UI = UI
 
         #camera parameters
-        self.resx = 1200
-        self.resy = 800
+        self.resx = 2200
+        self.resy = 1600
         self.res = 0.0005 #mm per px
         self.offsetx = 0
         self.offsety = 0

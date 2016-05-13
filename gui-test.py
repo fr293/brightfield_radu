@@ -29,6 +29,7 @@ mutex = QMutex()
 # ****************************************************
 # ******* CLASS - THREAD FOR GUI (main thread) *******
 class GUIWindow(QMainWindow):
+    set_current_trigger = Signal(int,float)
     #constructor
     def __init__(self):
         super(GUIWindow,self).__init__()
@@ -44,8 +45,11 @@ class GUIWindow(QMainWindow):
         
         self.thread_ps = ThreadPowerSupply(serial_ps)
         self.thread_ps.start()
+        self.set_current_trigger.connect(self.thread_ps.set_current_changed)
+
         self.thread_cont = ThreadControl(self)
         self.thread_cont.start()
+
         self.thread_det = ThreadDetection(self)
         self.thread_det.start()
 
@@ -92,10 +96,11 @@ class GUIWindow(QMainWindow):
         ps_dock.setWidget(self.ps_group)
         magnet_dock = QDockWidget()
         magnet_dock.setWidget(self.magnet_group)
-        act_dock = QDockWidget()
-        act_dock.setWidget(self.act_group)
         bead_dock = QDockWidget()
         bead_dock.setWidget(self.bead_group)
+        act_dock = QDockWidget()
+        act_dock.setWidget(self.act_group)
+
 
         #set widgets to main window
         self.setCentralWidget(main_widget)
@@ -346,15 +351,17 @@ class GUIWindow(QMainWindow):
         vbox = QVBoxLayout()
         self.act_estop_button = PushButtonWidget('Emergency Stop',self.act_estop)
         vbox.addWidget(self.act_estop_button)
+        grid = QGridLayout()
         self.axis_GUI_list = []
-        for axis_label,axis_address in zip(['x-axis','y-axis','y2-axis'],[1,2,3]):
+        for axis_label,axis_address,position in zip(['x-axis','y-axis','y2-axis'],[1,2,3],[(0,0),(0,1),(1,0)]):
             #create axis GUI object
             axis = Axis_GUI(axis_label,axis_address)
             self.axis_GUI_list.append(axis)
             #group box
             gbox = QGroupBox(axis_label)
             gbox.setLayout(axis.vbox)
-            vbox.addWidget(gbox)
+            grid.addWidget(gbox,*position)
+        vbox.addLayout(grid)
         vbox.addStretch(1)
         self.act_textbar = QLineEdit()
         self.act_textbar.setReadOnly(True)
@@ -362,7 +369,7 @@ class GUIWindow(QMainWindow):
         #add everything to group box
         self.act_group = QGroupBox('ACTUATOR CONTROL PANEL')
         self.act_group.setLayout(vbox)
-        self.act_group.setFixedWidth(300)
+        self.act_group.setFixedWidth(600)
 
     def act_estop(self):
         self.thread_act.estop()
@@ -381,10 +388,7 @@ class GUIWindow(QMainWindow):
 
     def set_current_changed(self,value,ref_text):
         i = int(ref_text)-1
-        self.thread_ps.current_value[i] = value
-        self.thread_ps.current_changed[i] = True
-        self.thread_ps.current_refresh[i] = 1
-        print('current '+ str(i) +' changed: '+str(value))
+        self.set_current_trigger.emit(i,value)
 
     def magnet_mode_changed(self,tab_index):
         #turn off hold on mode change
