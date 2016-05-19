@@ -311,7 +311,7 @@ class ThreadPowerSupply(QThread):
         self.current_value[i] = value
         self.current_changed[i] = True
         self.current_refresh[i] = 1
-        print('current '+ str(i) +' changed: '+str(value))
+        #print('current '+ str(i) +' changed: '+str(value))
 
     def led_toggle(self,toggle_flag):
         if toggle_flag == True:

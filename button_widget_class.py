@@ -66,6 +66,7 @@ class MomentaryButtonWidget(QPushButton):
                 self.slot_off()
 
 class DoubleToggleButtonWidget(QWidget):
+    trigger = Signal(bool)
     #constructor
     def __init__(self,text_list,slot_list,*args):
         super(DoubleToggleButtonWidget,self).__init__()
@@ -142,6 +143,7 @@ class DoubleToggleButtonWidget(QWidget):
                 self.slot_on(self.toggle_flag)
             else:
                 self.slot_on()
+            self.trigger.emit(True)
         #turn off
         else:
             self.toggle_flag = False
@@ -155,6 +157,7 @@ class DoubleToggleButtonWidget(QWidget):
                 self.slot_off(self.toggle_flag)
             else:
                 self.slot_off()
+            self.trigger.emit(False)
 
     def set_toggle(self,set_toggle_flag):
         if set_toggle_flag == True and self.toggle_flag == False:

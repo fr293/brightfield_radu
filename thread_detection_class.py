@@ -2,6 +2,9 @@ import time
 import numpy as np
 import cv2
 import cv2.cv as cv
+import os
+import csv
+import atexit
 
 from PySide.QtCore import *
 from PySide.QtGui import *
@@ -14,17 +17,26 @@ except ImportError as e:
     exit()
 
 class ThreadDetection(QThread):
+    bead_update_trigger = Signal(str,float)
+    bead_position_update_trigger = Signal(list,list,list)
+    focus_update_trigger = Signal(float,float)
+    display_update_trigger = Signal(list,list)
+    display_frame_update_trigger = Signal(int,object,int)
+    display_frame_update_trigger_bead = Signal(int,object,object,int,object,object,object)
+
     def __init__(self,UI):
         super(ThreadDetection, self).__init__()
-        self.UI = UI
 
         #camera parameters
-        self.resx = 2200
-        self.resy = 1600
-        self.res = 0.0005 #mm per px
-        self.offsetx = 0
-        self.offsety = 0
+        self.resx = 2588
+        self.resy = 1940
+        self.resolution = 0.0005 #mm per px
+        self.offsetx = self.resx*self.resolution/2
+        self.offsety = self.resy*self.resolution/2
         self.offsetz = 0
+        self.volume_x = 0.7
+        self.volume_y = 0.7
+        self.volume_z = 0.6
 
         self.time_refresh = 0
         self.detect_flag = True
@@ -41,7 +53,6 @@ class ThreadDetection(QThread):
 
         self.focus1,self.round1,self.nbead1,self.centerx1,self.centery1,self.width1,self.height1 = 0,0,0,0,0,0,0
         self.focus2,self.round2,self.nbead2,self.centerx2,self.centery2,self.width2,self.height2 = 0,0,0,0,0,0,0
-        self.position = [0,0,0]
 
         #video config
         vimba = Vimba()
@@ -71,6 +82,7 @@ class ThreadDetection(QThread):
         self.max_fps = camcapture.AcquisitionFrameRateLimit
         self.set_fps = 1.0
         self.fps = 0.0
+        self.time_fps = 0
         self.time_fps_l = -10.0
         self.dt_fps = 0.0
 
@@ -120,59 +132,42 @@ class ThreadDetection(QThread):
         self.index_focus_avg_1_RT = 0
         self.index_focus_avg_2_RT = 0
 
+        self.positions = [0,0,0]
+        self.camera_positions = [0,0,0]
+        self.camera_offsets = [0,0,0]
+        self.axis_positions = [0,0,0]
+
+        self.tip_positions = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
+
+
     def run(self):  # method which runs the thread
         print('Detection Thread Started')
+        self.save_positions('load')
         while True:
-            if (time.clock() - self.time_fps_l >=  1.0/self.set_fps):
+            if time.clock() - self.time_fps_l >= 1.0/self.set_fps:
+                #Calculate frame rate
                 self.time_fps = time.clock()
                 self.dt_fps = (self.time_fps - self.time_fps_l)*1000
                 self.fps = 1000.0/self.dt_fps
                 self.time_fps_l = self.time_fps
 
-                x_min = 794
-                y_min = 470
-                x_max = 1794
-                y_max = 1470
-                x_mid = int((x_min+x_max)/2.0)
-                y_mid = int((y_min+y_max)/2.0)
-                x_rez = 2588
-                y_rez = 1940
-                x11 = 735; x12 = x11 + 134
-                y11 = 770; y12 = y11 + 300
-
-                x21 = 870; x22 = x21 + 140
-                y21 = 580; y22 = y21 + 690
-
-                x31 = 1080; x32 = x31 + 155
-                y31 = 606;  y32 = y31 + 600
-
-                x41 = 1250; x42 = x41 + 180
-                y41 = 700;  y42 = y41 + 995
-
-                x51 = 1550; x52 = x51 + 195
-                y51 = 705;  y52 = y51 + 600
-
-
-
+                #Get frames
                 self.frame.queueFrameCapture()
                 self.frame.waitFrameCapture(1000)
                 frame_data = self.frame.getBufferByteData()
-
                 self.frame2.queueFrameCapture()
                 self.frame2.waitFrameCapture(1000)
                 frame_data2 = self.frame2.getBufferByteData()
 
-                self.time_calib = time.clock()
-
+                #Convert to array
                 self.n_frame = np.ndarray(buffer=frame_data, dtype=np.uint8, shape=(self.frame.height,self.frame.width))
                 self.n_frame_rect = self.n_frame.copy()
                 #cv2.rectangle(self.n_frame_rect,(x_min,y_min),(x_max,y_max),(255,127,127),4)
-
                 self.n_frame2 = np.ndarray(buffer=frame_data2, dtype=np.uint8, shape=(self.frame2.height,self.frame2.width))
                 self.n_frame_rect2 = self.n_frame2.copy()
                 #cv2.rectangle(self.n_frame_rect2,(x_min,y_min),(x_max,y_max),(255,127,127),4)
 
-
+                #Detect beads
                 if self.detect_flag:
                     #camera 1
                     self.n_frame_beads,xr,yr,self.width1,self.height1,self.nbead1,self.centerx1,self.centery1,self.round1 = self.detect_beads(self.n_frame,
@@ -197,36 +192,75 @@ class ThreadDetection(QThread):
                     mean, stdev = cv2.meanStdDev(self.cn_frame_sobel2)
                     self.focus2 = stdev[0][0]/mean[0][0]
 
+                #Update bead positions
                 self.calculate_positions()
-
-                if self.UI.init_flag:
-                    self.update_UI()
+                self.update_UI()
                 self.time_refresh = time.clock()
 
     def update_UI(self):
+        #update UI with values for various parameters
         for key,val in zip(['fps','dt_fps','max_fps'],
                            [self.fps,self.dt_fps,self.max_fps]):
-            self.UI.bead_dict[key].set_value(val)
+            self.bead_update_trigger.emit(key,val)
         for key,val in zip(['focus1','round1','nbead1','centerx1','centery1','width1','height1'],
                            [self.focus1,self.round1,self.nbead1,self.centerx1,self.centery1,self.width1,self.height1]):
-            self.UI.bead_dict[key].set_value(val)
+            self.bead_update_trigger.emit(key,val)
         for key,val in zip(['focus2','round2','nbead2','centerx2','centery2','width2','height2'],
                            [self.focus2,self.round2,self.nbead2,self.centerx2,self.centery2,self.width2,self.height2]):
-            self.UI.bead_dict[key].set_value(val)
-        for i in range(3):
-            self.UI.bead_dict['position'][i].set_value(self.position[i])
+            self.bead_update_trigger.emit(key,val)
+
+        self.bead_position_update_trigger.emit(self.positions,self.camera_positions,self.tip_positions)
+
+        self.focus_update_trigger.emit(self.focus1,self.focus2)
+
+        #update UI with images of beads
+        #self.display_frame_update_trigger.emit(1,self.n_frame_rect,self.n_frame,self.nbead1)
+        #self.display_frame_update_trigger.emit(2,self.n_frame_rect2,self.n_frame2,self.nbead2)
+        self.display_frame_update_trigger.emit(1,self.n_frame_rect,self.nbead1)
+        self.display_frame_update_trigger.emit(2,self.n_frame_rect2,self.nbead2)
+        self.display_update_trigger.emit(self.positions,self.camera_positions)
+        # if self.nbead1 == 0:
+        #     self.display_update_trigger.emit(1,self.n_frame_rect,self.n_frame,self.nbead1)
+        # else:
+        #     self.display_frame_update_trigger_bead.emit(1,self.n_frame_rect,self.n_frame,self.nbead1,self.n_frame_beads,self.cn_frame,self.cn_frame_sobel)
+        #
+        # if self.nbead2 == 0:
+        #     self.display_update_trigger.emit(2,self.n_frame_rect2,self.n_frame2,self.nbead2)
+        # else:
+        #     self.display_frame_update_trigger_bead.emit(2,self.n_frame_rect2,self.n_frame2,self.nbead2,self.n_frame_beads2,self.cn_frame2,self.cn_frame_sobel2)
+
+
+
 
     def value_changed(self,value,ref_text):
         value_str = 'self.'+ref_text
         exec(value_str+' = value')
         print 'value changed',value,ref_text
+
+    def xaxis_changed(self,value):
+        self.axis_positions[0] = value
+        self.save_positions()
+
+    def yaxis_changed(self,value):
+        self.axis_positions[1] = - value
+        self.save_positions()
+
+    def zaxis_changed(self,value):
+        self.axis_positions[2] = value
+        self.save_positions()
         
     def calculate_positions(self):
+        for i in range(3):
+            self.camera_positions[i] = self.axis_positions[i] - self.camera_offsets[i]
+
+        #Average camera bead locations
         centerx = (self.centerx1+self.centerx2)/2
         #flip y axis
         centery = self.resy - (self.centery1+self.centery2)/2
-        self.position[0] = self.offsetx + centerx*self.res
-        self.position[1] = self.offsety + centery*self.res
+
+        self.positions[0] = centerx*self.resolution - self.offsetx + self.camera_positions[0]
+        self.positions[1] = centery*self.resolution - self.offsety + self.camera_positions[1]
+        self.positions[2] = self.camera_positions[2]
 
     #returns picture after thresholding
     def threshold_frame(self,frame,thresh_min,thresh_max):
@@ -488,3 +522,62 @@ class ThreadDetection(QThread):
         x_1 = 7.25995
         return x_av-x_1
 
+    def save_img(self,filepath):
+        cv2.imwrite(filepath,self.n_frame)
+        print 'image saved: ' + filepath
+        return
+
+    def zero_cam(self,i):
+        self.camera_offsets[i] = self.axis_positions[i]
+        print 'zero pos {0}'.format(i)
+
+    def tip_pos(self,i):
+        if i < 4:
+            for j in range(3):
+                self.tip_positions[i][j] = self.camera_positions[j]
+                self.tip_positions[4][j] = (self.tip_positions[0][j]+self.tip_positions[1][j]+self.tip_positions[2][j]+self.tip_positions[3][j])/4
+        if i == 4:
+            for j in range(3):
+                self.tip_positions[4][j] = (self.tip_positions[0][j]+self.tip_positions[1][j]+self.tip_positions[2][j]+self.tip_positions[3][j])/4
+                self.camera_offsets[j] = self.axis_positions[j] - (self.camera_positions[j] - self.tip_positions[4][j])
+            self.calculate_positions()
+            for i in range(4):
+                for j in range(3):
+                    self.tip_positions[i][j] = self.tip_positions[i][j] - self.tip_positions[4][j]
+            for j in range(3):
+                self.tip_positions[4][j] = 0
+        self.save_positions()
+        print 'tip pos {0}: x{1} y{2} z{3}'.format(i,self.tip_positions[i][0],self.tip_positions[i][1],self.tip_positions[i][2])
+
+    def save_positions(self, mode = 'save'):
+        # file name
+        f_path = os.getcwd()+'\\save\\'
+        f_name = 'camera_positions'
+        f_path = f_path + f_name +'.csv'
+        # open file
+        with open(f_path,'r+') as f:
+            if mode == 'load':
+                reader = csv.reader(f)
+                read_list = []
+                for position in reader.next():
+                    read_list.append(position)
+                for i in range(3):
+                    self.camera_offsets[i] = float(read_list[i])
+
+                for i in range(5):
+                    read_list = []
+                    for position in reader.next():
+                        read_list.append(position)
+                    for j in range(3):
+                        self.tip_positions[i][j] = float(read_list[j])
+            elif mode == 'save':
+                writer = csv.writer(f)
+                write_list = []
+                for offset in self.camera_offsets:
+                    write_list.append('{0:7.4f}'.format(offset))
+                writer.writerow(write_list)
+                for i in range(5):
+                    write_list = []
+                    for j in range(3):
+                        write_list.append('{0:7.4f}'.format(self.tip_positions[i][j]))
+                    writer.writerow(write_list)

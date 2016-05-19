@@ -1,4 +1,5 @@
 from PySide.QtGui import *
+from PySide.QtCore import *
 
 class SpinBoxWidget(QWidget):
     #constructor
@@ -67,6 +68,7 @@ class SpinBoxWidget(QWidget):
         self.value_label.setText(str)
 
 class ValueDisplayWidget(QWidget):
+    trigger = Signal(float)
     #constructor
     def __init__(self,text_list,float_digits,*args):
         super(ValueDisplayWidget,self).__init__()
@@ -83,7 +85,6 @@ class ValueDisplayWidget(QWidget):
         self.label = QLabel(label_text)
         self.value_label = QLabel()
         self.units_label = QLabel(units_text)
-
         self.format_string = str('{0:'+'{0}.{1}f'.format(digits,decimals)+'}')
         self.value_label.setText(self.format_string.format(0))
         if args:
@@ -102,6 +103,7 @@ class ValueDisplayWidget(QWidget):
 
     def set_value(self,value):
         self.value_label.setText(self.format_string.format(value))
+        self.trigger.emit(value)
 
     def get_value(self):
         return float(self.value_label.text())

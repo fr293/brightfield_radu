@@ -68,9 +68,10 @@ class Axis_GUI(QObject):
         vbox_.addWidget(self.feed_sbox)
         self.manual_widget.setLayout(vbox_)
 
-        self.tab.addTab(self.functions_widget,'Functions')
-        self.tab.addTab(self.move_widget,'Move')
         self.tab.addTab(self.manual_widget,'Manual')
+        self.tab.addTab(self.move_widget,'Move')
+        self.tab.addTab(self.functions_widget,'Functions')
+
 
         self.rxbar = QLineEdit()
         self.rxbar.setReadOnly(True)

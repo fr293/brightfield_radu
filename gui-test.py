@@ -21,6 +21,7 @@ from thread_detection_class import *
 from axis_class import *
 from thread_control_class import *
 from thread_actuator_class import *
+from thread_experiment_class import *
 
 import pyqtgraph as pg
 
@@ -50,16 +51,38 @@ class GUIWindow(QMainWindow):
         self.thread_cont = ThreadControl(self)
         self.thread_cont.start()
 
+
         self.thread_det = ThreadDetection(self)
         self.thread_det.start()
+        self.thread_det.bead_update_trigger.connect(self.bead_changed)
+        self.thread_det.display_update_trigger.connect(self.thread_cont.bead_changed)
+        self.thread_det.bead_position_update_trigger.connect(self.bead_position_changed)
 
         if sandbox == False:
             self.disp_widget = DisplayWidget(self.thread_det)
+            self.thread_det.display_frame_update_trigger.connect(self.disp_widget.getFrames)
+            self.thread_det.display_frame_update_trigger_bead.connect(self.disp_widget.getFrames)
+            self.thread_det.display_update_trigger.connect(self.disp_widget.bead_changed)
+
+        self.thread_exp = ThreadExperiment(self)
+        self.thread_exp.start()
+        self.thread_det.display_update_trigger.connect(self.thread_exp.bead_changed)
+
 
         self.initUI()
-        self.mutex = QMutex()
+
+        self.axis_GUI_list[0].value.trigger.connect(self.thread_det.xaxis_changed)
+        self.axis_GUI_list[1].value.trigger.connect(self.thread_det.yaxis_changed)
+        self.z_axis_GUI.value.trigger.connect(self.thread_det.zaxis_changed)
+        self.thread_cont.current_update_trigger.connect(self.current_changed)
+
         self.thread_act = ThreadActuator(self,self.axis_GUI_list)
         self.thread_act.start()
+        self.thread_act_z = ThreadActuatorZ(self,self.z_axis_GUI)
+        self.thread_act_z.start()
+        self.bead_ztrack_tbutton.trigger.connect(self.thread_act_z.track_toggle)
+        self.thread_det.focus_update_trigger.connect(self.thread_act_z.update_focus)
+
 
         self.init_flag = True
 
@@ -113,6 +136,7 @@ class GUIWindow(QMainWindow):
         self.statbar = QStatusBar()
         self.statbar.showMessage('Init UI Complete')
         self.setStatusBar(self.statbar)
+
 
     def create_disp_group(self):
         self.disp_group = QGroupBox('VIDEO DISPLAY')
@@ -209,15 +233,82 @@ class GUIWindow(QMainWindow):
 
         #z tracking
         vbox = QVBoxLayout()
-        self.bead_zact_tbutton = DoubleToggleButtonWidget(['Start','Stop','z Actuator Pooling'],self.bead_zact_toggle)
-        vbox.addWidget(self.bead_zact_tbutton)
         self.bead_ztrack_tbutton = DoubleToggleButtonWidget(['Start','Stop','z Tracking'],self.bead_ztrack_toggle)
         vbox.addWidget(self.bead_ztrack_tbutton)
         vbox.addStretch(1)
 
         ztracking_group = QGroupBox('Z TRACKING')
         ztracking_group.setLayout(vbox)
-        ztracking_group.setFixedWidth(250)
+        ztracking_group.setFixedWidth(150)
+
+        #bead position
+        vbox = QVBoxLayout()
+        self.camera_position_zero_buttons = []
+        self.camera_position_zero_buttons.append(PushButtonWidget('Zero x',self.thread_det.zero_cam,0))
+        self.camera_position_zero_buttons.append(PushButtonWidget('Zero y',self.thread_det.zero_cam,1))
+        self.camera_position_zero_buttons.append(PushButtonWidget('Zero z',self.thread_det.zero_cam,2))
+        self.camera_positions = []
+        self.camera_positions.append(ValueDisplayWidget(['Camera Position x','mm'],[6,3]))
+        self.camera_positions.append(ValueDisplayWidget(['Camera Position y','mm'],[6,3]))
+        self.camera_positions.append(ValueDisplayWidget(['Camera Position z','mm'],[6,3]))
+        for i in range(3):
+            hbox = QHBoxLayout()
+            hbox.addWidget(self.camera_positions[i])
+            hbox.addWidget(self.camera_position_zero_buttons[i])
+            vbox.addLayout(hbox)
+        vbox.addStretch(1)
+        beadpos_group = QGroupBox('CAMERA POSITION')
+        beadpos_group.setLayout(vbox)
+        beadpos_group.setFixedWidth(250)
+
+        vbox = QVBoxLayout()
+        self.tip_positions = []
+        self.tip_buttons = []
+        self.tip_buttons.append(PushButtonWidget('Locate',self.thread_det.tip_pos,0))
+        self.tip_buttons.append(PushButtonWidget('Locate',self.thread_det.tip_pos,1))
+        self.tip_buttons.append(PushButtonWidget('Locate',self.thread_det.tip_pos,2))
+        self.tip_buttons.append(PushButtonWidget('Locate',self.thread_det.tip_pos,3))
+        self.tip_buttons.append(PushButtonWidget('Recalculate Zero',self.thread_det.tip_pos,4))
+        for i,label in zip(range(5),['Pole Tip #1','Pole Tip #2','Pole Tip #3','Pole Tip #4','Average']):
+            self.tip_positions.append([ValueDisplayWidget(['x','mm'],[6,3]),ValueDisplayWidget(['y','mm'],[6,3]),ValueDisplayWidget(['z','mm'],[6,3])])
+            hbox = QHBoxLayout()
+            hbox.addWidget(QLabel(label))
+            hbox.addWidget(self.tip_buttons[i])
+            vbox.addLayout(hbox)
+            hbox = QHBoxLayout()
+            hbox.addWidget(self.tip_positions[i][0])
+            hbox.addWidget(self.tip_positions[i][1])
+            hbox.addWidget(self.tip_positions[i][2])
+            vbox.addLayout(hbox)
+        tip_group = QGroupBox('POLE TIP LOCATIONS')
+        tip_group.setLayout(vbox)
+        tip_group.setFixedWidth(250)
+
+        #data logging
+        vbox = QVBoxLayout()
+        self.save_img_filename = QLineEdit()
+        self.save_img_filename.setPlaceholderText('filename of picture to be saved')
+        self.save_img_button = QPushButton('Save Image')
+        self.save_img_button.clicked.connect(self.save_img)
+        vbox.addWidget(self.save_img_filename)
+        vbox.addWidget(self.save_img_button)
+        vbox.addStretch(1)
+
+        self.exp_filename = QLineEdit()
+        self.exp_filename.setPlaceholderText('filename of experiment')
+        self.exp_filename.textChanged.connect(self.thread_exp.exp_fname_changed)
+        self.exp_save_filename = QLineEdit()
+        self.exp_save_filename.setPlaceholderText('filename of savefile')
+        self.exp_save_filename.textChanged.connect(self.thread_exp.save_fname_changed)
+        self.exp_tbutton = DoubleToggleButtonWidget(['Start Experiment','Stop'],self.thread_exp.exp_toggle)
+        vbox.addWidget(self.exp_filename)
+        vbox.addWidget(self.exp_save_filename)
+        vbox.addWidget(self.exp_tbutton)
+
+        data_group = QGroupBox('DATA LOGGING')
+        data_group.setLayout(vbox)
+        data_group.setFixedWidth(200)
+
 
         hbox = QHBoxLayout()
         hbox.addWidget(display_group)
@@ -225,6 +316,9 @@ class GUIWindow(QMainWindow):
         hbox.addWidget(cam1_group)
         hbox.addWidget(cam2_group)
         hbox.addWidget(ztracking_group)
+        hbox.addWidget(beadpos_group)
+        hbox.addWidget(tip_group)
+        hbox.addWidget(data_group)
         hbox.addStretch(1)
 
         self.bead_group = QGroupBox('BEAD CONTROL PANEL')
@@ -246,7 +340,7 @@ class GUIWindow(QMainWindow):
         vbox_.addLayout(hbox)
         self.set_current_sbox = []
         for i in range(4):
-            self.set_current_sbox.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.05,2.5],[5,3],self.set_current_changed,True))
+            self.set_current_sbox.append(SpinBoxWidget(['Current '+str(i+1),'A',str(i+1)],0.0,[-2.5,0.01,2.5],[5,3],self.set_current_changed,True))
             vbox_.addWidget(self.set_current_sbox[i])
         group.setLayout(vbox_)
         vbox.addWidget(group)
@@ -279,6 +373,10 @@ class GUIWindow(QMainWindow):
         #move tab
         magnet_move_widget = QWidget()
         vbox_ = QVBoxLayout()
+        self.bead_positions = []
+        self.bead_positions.append(ValueDisplayWidget(['Bead Position x','mm'],[6,3]))
+        self.bead_positions.append(ValueDisplayWidget(['Bead Position y','mm'],[6,3]))
+        self.bead_positions.append(ValueDisplayWidget(['Bead Position z','mm'],[6,3]))
         self.magnet_set_pos_sbox = []
         self.magnet_set_pos_sbox.append(SpinBoxWidget(['x','mm','x'],0,[-50,0.002,50],[6,3],self.thread_cont.magnet_set_changed,False))
         self.magnet_set_pos_sbox.append(SpinBoxWidget(['y','mm','y'],0,[-50,0.002,50],[6,3],self.thread_cont.magnet_set_changed,False))
@@ -299,15 +397,11 @@ class GUIWindow(QMainWindow):
         self.magnet_tab.addTab(magnet_move_widget,'Move')
         self.magnet_tab.currentChanged.connect(self.magnet_mode_changed)
 
-
         vbox_ = QVBoxLayout()
-        self.bead_dict['position'] = []
-        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position x','mm'],[6,3]))
-        vbox_.addWidget(self.bead_dict['position'][0])
-        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position y','mm'],[6,3]))
-        vbox_.addWidget(self.bead_dict['position'][1])
-        self.bead_dict['position'].append(ValueDisplayWidget(['Bead Position z','mm'],[6,3]))
-        vbox_.addWidget(self.bead_dict['position'][2])
+
+        vbox_.addWidget(self.bead_positions[0])
+        vbox_.addWidget(self.bead_positions[1])
+        vbox_.addWidget(self.bead_positions[2])
         vbox_.addWidget(self.magnet_tab)
         vbox_.addStretch(1)
         group.setLayout(vbox_)
@@ -361,6 +455,12 @@ class GUIWindow(QMainWindow):
             gbox = QGroupBox(axis_label)
             gbox.setLayout(axis.vbox)
             grid.addWidget(gbox,*position)
+
+        self.z_axis_GUI = Axis_GUI('z-axis',0)
+        gbox = QGroupBox('z_axis')
+        gbox.setLayout(self.z_axis_GUI.vbox)
+        grid.addWidget(gbox,1,1)
+
         vbox.addLayout(grid)
         vbox.addStretch(1)
         self.act_textbar = QLineEdit()
@@ -390,6 +490,10 @@ class GUIWindow(QMainWindow):
         i = int(ref_text)-1
         self.set_current_trigger.emit(i,value)
 
+    def current_changed(self,set_current_list):
+        for i in range(len(set_current_list)):
+            self.set_current_sbox[i].spinbox.setValue(set_current_list[i])
+
     def magnet_mode_changed(self,tab_index):
         #turn off hold on mode change
         if self.magnet_hold_tbutton.toggle_flag == 1:
@@ -401,11 +505,15 @@ class GUIWindow(QMainWindow):
         if tab_index == 1:
             print('hold mode')
 
-    def bead_changed(self,value,ref_text):
-        print('bead changed')
+    def bead_changed(self,key,val):
+        self.bead_dict[key].set_value(val)
 
-        widget_str = 'self.thread_det.'+ref_text
-        vars()[widget_str] = value
+    def bead_position_changed(self,bead_positions,camera_positions,tip_positions):
+        for i in range(3):
+            self.bead_positions[i].set_value(bead_positions[i])
+            self.camera_positions[i].set_value(camera_positions[i])
+            for j in range(5):
+                self.tip_positions[j][i].set_value(tip_positions[j][i])
 
     def disp_changed(self,value,ref_text):
         print('disp changed')
@@ -424,6 +532,12 @@ class GUIWindow(QMainWindow):
             print('z tracking on')
         elif toggle_flag == False:
             print('z tracking off')
+
+    def save_img(self):
+        filepath = os.getcwd()+'\\images\\'
+        filename = time.strftime("%Y%m%d%H%M%S") + self.save_img_filename.text()
+        filepath = filepath + filename +'.jpeg'
+        self.thread_det.save_img(filepath)
 
 # ******** MAIN
 def main():
