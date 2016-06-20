@@ -235,8 +235,8 @@ class Axis(QObject):
         self.position_update_time = 0
         self.position_offset = 0
 
-        self.kP = 2.7
-        self.kI = 0.08
+        self.kP = 3
+        self.kI = 0.2
         self.kD = 0
         self.error = 0
         self.last_error = 0
@@ -372,9 +372,9 @@ class Axis(QObject):
 
     def cvel(self):
         if self.velocity < self.feed_velocity and self.motor_speed <= 255:
-            self.motor_speed += 10*(self.feed_velocity - self.velocity)
+            self.motor_speed += 15*(self.feed_velocity - self.velocity)
         elif self.velocity > self.feed_velocity and self.motor_speed >= -255:
-            self.motor_speed += 10*(self.feed_velocity - self.velocity)
+            self.motor_speed += 15*(self.feed_velocity - self.velocity)
 
         return int(self.motor_speed)
 

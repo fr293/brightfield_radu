@@ -28,6 +28,10 @@ class DisplayWidget(QWidget):
         self.display_resy = int(self.display_resx*(float(self.camera_resy)/self.camera_resx))
         self.scale = float(self.display_resx)/self.camera_resx
 
+        self.save_img_flag = False
+        self.save_video_flag = False
+        self.n_video = 0
+
     def paintEvent(self, *args, **kwargs):
         if self.draw_flag:
             qp = QPainter()
@@ -82,6 +86,7 @@ class DisplayWidget(QWidget):
         cv2.line(self.n_frame_rect,(x_zero-ch1,y_zero),(x_zero-ch2,y_zero),(127,127,255),8)
         cv2.line(self.n_frame_rect,(x_zero,y_zero+ch1),(x_zero,y_zero+ch2),(127,127,255),8)
         cv2.line(self.n_frame_rect,(x_zero,y_zero-ch1),(x_zero,y_zero-ch2),(127,127,255),8)
+
         #draw volume
         w1 = int((self.volume_x/2)/resolution)
         h1 = int((self.volume_y/2)/resolution)
@@ -89,6 +94,10 @@ class DisplayWidget(QWidget):
         cv2.line(self.n_frame_rect,(x_zero-w1,y_zero-h1),(x_zero-w1,y_zero+h1),(127,127,255),8)
         cv2.line(self.n_frame_rect,(x_zero-w1,y_zero+h1),(x_zero+w1,y_zero+h1),(127,127,255),8)
         cv2.line(self.n_frame_rect,(x_zero-w1,y_zero-h1),(x_zero+w1,y_zero-h1),(127,127,255),8)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(self.n_frame_rect,'200um', (resx - 375,resy-150), font, 3,(255,255,255),10)
+        cv2.line(self.n_frame_rect,(resx-450,resy - 75),(resx-50,resy-75),(255,255,255),20)
+
 
         #camera 1
         q_frame = NumPyQImage(self.n_frame_rect)#convert to QImage
@@ -124,10 +133,36 @@ class DisplayWidget(QWidget):
             scq_frame_sobel2 = cq_frame_sobel2.scaled(cq_frame_sobel2.width()/2, cq_frame_sobel2.height()/2,)
             qp.drawImage(QPoint(self.display_resx+220, 2*self.display_resy+60), scq_frame_sobel2)
 
-    def bead_changed(self,positions,camera_positions):
+        if self.save_img_flag:
+            cv2.imwrite(self.filepath,self.n_frame_rect)
+            self.save_img_flag = False
+            print 'image saved: ' + self.filepath
+
+        if self.save_video_flag:
+            filepath = self.filepath + '_{0}'.format(self.n_video) +'.jpeg'
+            cv2.imwrite(filepath,cv2.resize(self.n_frame_rect,None,fx=0.5, fy=0.5,interpolation = cv2.INTER_LINEAR))
+            self.n_video = self.n_video + 1
+            print 'image saved: ' + filepath
+
+    def bead_position_changed(self,positions,camera_positions,tip_positions,axis_positions):
         for i in range(3):
             self.positions[i] = positions[i]
             self.camera_positions[i] = camera_positions[i]
+
+    def save_img(self,filepath):
+        self.filepath = filepath + '.jpeg'
+        self.save_img_flag = True
+        return
+
+    def save_video(self,filepath,toggle_flag):
+        if toggle_flag:
+            self.filepath = filepath
+            self.save_video_flag = True
+            self.n_video = 0
+        else:
+            self.save_video_flag = False
+            self.n_video = 0
+        return
 
 #CLASS to convert NumPy to QImage
 class NumPyQImage(QImage):

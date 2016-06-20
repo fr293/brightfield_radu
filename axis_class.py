@@ -34,7 +34,7 @@ class Axis_GUI(QObject):
         self.start_tbutton = DoubleToggleButtonWidget(['Start','Stop'],self.start_toggle)
         self.jogp_mbutton = MomentaryButtonWidget('Jog +',self.jogp_toggle)
         self.jogm_mbutton = MomentaryButtonWidget('Jog -',self.jogm_toggle)
-        self.feed_sbox = SpinBoxWidget(['Feed Velocity','mm/s'],0,[-10,0.01,10],[5,2],self.feed_velocity_changed,False)
+        self.feed_sbox = SpinBoxWidget(['Feed Velocity','mm/s'],0,[-10,0.001,10],[6,3],self.feed_velocity_changed,False)
         self.feed_tbutton = DoubleToggleButtonWidget(['Start','Stop','Feed Axis'],self.feed_toggle)
 
         #tabs

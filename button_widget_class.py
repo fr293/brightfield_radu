@@ -2,6 +2,7 @@ from PySide.QtGui import *
 from PySide.QtCore import *
 
 class PushButtonWidget(QPushButton):
+    trigger = Signal()
     def __init__(self,text,slot,*args):
         super(PushButtonWidget,self).__init__()
         #create button
@@ -21,6 +22,7 @@ class PushButtonWidget(QPushButton):
             self.slot(self.ref_text)
         else:
             self.slot()
+        self.trigger.emit()
 
 class MomentaryButtonWidget(QPushButton):
     #constructor

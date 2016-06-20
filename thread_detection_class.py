@@ -18,9 +18,8 @@ except ImportError as e:
 
 class ThreadDetection(QThread):
     bead_update_trigger = Signal(str,float)
-    bead_position_update_trigger = Signal(list,list,list)
+    bead_position_update_trigger = Signal(list,list,list,list)
     focus_update_trigger = Signal(float,float)
-    display_update_trigger = Signal(list,list)
     display_frame_update_trigger = Signal(int,object,int)
     display_frame_update_trigger_bead = Signal(int,object,object,int,object,object,object)
 
@@ -51,8 +50,7 @@ class ThreadDetection(QThread):
         self.thresh2_max = 250
         self.bead_size = 41.13
 
-        self.focus1,self.round1,self.nbead1,self.centerx1,self.centery1,self.width1,self.height1 = 0,0,0,0,0,0,0
-        self.focus2,self.round2,self.nbead2,self.centerx2,self.centery2,self.width2,self.height2 = 0,0,0,0,0,0,0
+
 
         #video config
         vimba = Vimba()
@@ -135,7 +133,7 @@ class ThreadDetection(QThread):
         self.positions = [0,0,0]
         self.camera_positions = [0,0,0]
         self.camera_offsets = [0,0,0]
-        self.axis_positions = [0,0,0]
+        self.axis_positions = [0,0,0,0]
 
         self.tip_positions = [[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]]
 
@@ -209,7 +207,7 @@ class ThreadDetection(QThread):
                            [self.focus2,self.round2,self.nbead2,self.centerx2,self.centery2,self.width2,self.height2]):
             self.bead_update_trigger.emit(key,val)
 
-        self.bead_position_update_trigger.emit(self.positions,self.camera_positions,self.tip_positions)
+        self.bead_position_update_trigger.emit(self.positions,self.camera_positions,self.tip_positions,self.axis_positions)
 
         self.focus_update_trigger.emit(self.focus1,self.focus2)
 
@@ -218,7 +216,6 @@ class ThreadDetection(QThread):
         #self.display_frame_update_trigger.emit(2,self.n_frame_rect2,self.n_frame2,self.nbead2)
         self.display_frame_update_trigger.emit(1,self.n_frame_rect,self.nbead1)
         self.display_frame_update_trigger.emit(2,self.n_frame_rect2,self.nbead2)
-        self.display_update_trigger.emit(self.positions,self.camera_positions)
         # if self.nbead1 == 0:
         #     self.display_update_trigger.emit(1,self.n_frame_rect,self.n_frame,self.nbead1)
         # else:
@@ -239,15 +236,15 @@ class ThreadDetection(QThread):
 
     def xaxis_changed(self,value):
         self.axis_positions[0] = value
-        self.save_positions()
 
     def yaxis_changed(self,value):
         self.axis_positions[1] = - value
-        self.save_positions()
 
     def zaxis_changed(self,value):
         self.axis_positions[2] = value
-        self.save_positions()
+
+    def y2axis_changed(self,value):
+        self.axis_positions[3] = value
         
     def calculate_positions(self):
         for i in range(3):
@@ -529,6 +526,7 @@ class ThreadDetection(QThread):
 
     def zero_cam(self,i):
         self.camera_offsets[i] = self.axis_positions[i]
+        self.save_positions()
         print 'zero pos {0}'.format(i)
 
     def tip_pos(self,i):

@@ -5,6 +5,7 @@ from PySide.QtCore import *
 from PySide.QtGui import *
 
 class ThreadPowerSupply(QThread):
+    power_trigger = Signal(bool)
     def __init__(self,serial_ps):
         super(ThreadPowerSupply, self).__init__()
         self.serial = serial_ps
@@ -328,6 +329,7 @@ class ThreadPowerSupply(QThread):
         elif toggle_flag == False:
             print('ps power off')
             self.power_is_set_off = True
+        self.power_trigger.emit(toggle_flag)
 
     def do_and_reply_ps(self, to_do):  # method - to get answer from controller
         self.serial.write(to_do)            # write to serial a command
