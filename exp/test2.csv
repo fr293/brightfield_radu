@@ -1,0 +1,4 @@
+move hold start
+feed y2 axis,-0.02,0.12,0.2,0.2,120
+move hold stop
+wait,5

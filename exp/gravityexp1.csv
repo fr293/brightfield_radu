@@ -1,0 +1,6 @@
+save file name,gravityexp1_save
+save mode,simple
+start z tracking
+start logging
+wait,3600
+stop logging

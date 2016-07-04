@@ -1,0 +1,133 @@
+save file name,feedback_noz2_save
+save mode,default
+start z tracking
+save file name,feedback_noz3_save
+start logging
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.005,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.005,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.01,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.01,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.015,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.015,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.02,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.02,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.025,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.025,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+stop logging
+save file name,feedback_noz4_save
+start logging
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.005,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.005,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.01,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.01,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.015,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.015,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.02,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.02,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,0.025,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+move hold start
+feed y2 axis,-0.025,0.10,0.1,0.12,120
+move hold stop
+wait,5
+move abs,0,0,-0.1,0.005,0.005,0.005
+wait,5
+stop logging
