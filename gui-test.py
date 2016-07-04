@@ -128,7 +128,7 @@ class GUIWindow(QMainWindow):
         main_layout.addWidget(self.disp_group)
 
         #create widgets/dock widgets from group boxes
-        main_widget = QWidget()
+        main_widget = QWidget() 
         main_widget.setLayout(main_layout)
         ps_dock = QDockWidget()
         ps_dock.setWidget(self.ps_group)
