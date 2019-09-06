@@ -1,24 +1,18 @@
 import sys
-import cv2
-#import cv2.cv as cv
 import time
 import numpy
 import numpy as np
 import datetime
 import csv
-
-# from pylab import *
 import cv2
 import serial
 import atexit
 import os
 import random
 from math import *
-
 from PySide import QtGui
 from PySide.QtGui import *
 from PySide.QtCore import *
-
 import pyqtgraph as pg
 
 # VIDEO config
