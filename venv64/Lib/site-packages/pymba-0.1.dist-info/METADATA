@@ -1,0 +1,27 @@
+Metadata-Version: 2.1
+Name: pymba
+Version: 0.1
+Summary: pymba is a Python wrapper for the Allied Vision Technologies (AVT) Vimba C API.
+Home-page: https://github.com/morefigs/pymba
+Author: morefigs
+Author-email: morefigs@gmail.com
+License: MIT
+Keywords: python,opencv,cv,machine vision,computer vision,image recognition,vimba,allied vision technologies,avt
+Platform: UNKNOWN
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Science/Research
+Classifier: Intended Audience :: Manufacturing
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: Microsoft :: Windows
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Topic :: Multimedia :: Graphics :: Capture :: Digital Camera
+Classifier: Topic :: Multimedia :: Graphics :: Graphics Conversion
+Classifier: Topic :: Scientific/Engineering :: Image Recognition
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Requires: numpy
+
+pymba is a Python wrapper for the Allied Vision Technologies (AVT) Vimba C API. It wraps the VimbaC.dll file included in the AVT Vimba installation to provide a simple Python interface for AVT cameras. It currently supports most of the functionality provided by VimbaC.dll.
+
+

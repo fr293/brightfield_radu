@@ -1,18 +1,24 @@
 import sys
+import cv2
+#import cv2.cv as cv
 import time
 import numpy
 import numpy as np
 import datetime
 import csv
+
+# from pylab import *
 import cv2
 import serial
 import atexit
 import os
 import random
 from math import *
+
 from PySide import QtGui
 from PySide.QtGui import *
 from PySide.QtCore import *
+
 import pyqtgraph as pg
 
 # VIDEO config
@@ -3883,7 +3889,7 @@ class PySideCam(QtGui.QWidget):
         self.cal_xc1_trans = [(self.center_x - self.origin_x) / self.conv_um_pix]
         self.cal_yc1_trans = [(self.center_y - self.origin_y) / self.conv_um_pix]
         self.cal_zb_oil_trans = [(self.z_c_oil - self.val_coord_z_bead) * 1000.0]
-        self.cal_zb_air_trans = [(self.z_c_air - (self.val_coord_z_bead * self.n_oil))*1000]
+        self.cal_zb_air_trans = [(self.z_c_oil - self.val_coord_z_bead) * 1000.0 * self.n_oil]
         self.cal_exp_index = [self.th_exp_dir.actual_index]
         self.cal_exp_go_away = [str(self.th_exp_dir.go_away_from_origin)[0]]
 
@@ -4440,20 +4446,18 @@ class PySideCam(QtGui.QWidget):
         self.diam_bead = self.diam_bead_value
         self.n_oil = 1.403
         self.n_glass = 1.474
-        self.z_bead_bottom_air = (self.z_bead_bottom * self.n_oil) + ((1 - self.n_glass) * self.d_glass)
 
         self.dist_bott_to_poles_air = (self.d_glass + self.d_oil - self.diam_bead / 2) / 1000.0
         self.dist_bott_to_poles_oil_glass = (self.d_glass / self.n_glass
                                              + (self.d_oil - self.diam_bead / 2) / self.n_oil) / 1000.0
 
         self.z_top_poles = self.z_bead_bottom + round(self.dist_bott_to_poles_oil_glass, 5)
-        self.z_top_poles_air = self.z_bead_bottom_air + round(self.dist_bott_to_poles_air, 5)
 
         self.dist_centre_to_poles_air = (self.d_glass + self.d_oil / 2.0) / 1000.0
         self.dist_centre_to_poles_oil = (self.d_glass / self.n_glass + self.d_oil / 2.0 / self.n_oil) / 1000.0
 
         self.z_c_oil = round(self.z_top_poles - self.dist_centre_to_poles_oil, 5)
-        self.z_c_air = round(self.z_top_poles_air - self.dist_centre_to_poles_air, 5)
+        self.z_c_air = round(self.z_top_poles - self.dist_centre_to_poles_air, 5)
 
         self.lab_plots_z_cent_oil.setText(str(self.z_c_oil))
         self.lab_plots_z_cent_air.setText(str(self.z_c_air))
