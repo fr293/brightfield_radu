@@ -4440,7 +4440,7 @@ class PySideCam(QtGui.QWidget):
         self.diam_bead = self.diam_bead_value
         self.n_oil = 1.403
         self.n_glass = 1.474
-        self.z_bead_bottom_air = (self.z_bead_bottom * self.n_oil) - ((self.n_oil + self.n_glass) * self.d_glass)
+        self.z_bead_bottom_air = (self.z_bead_bottom * self.n_oil) + ((1 - self.n_glass) * self.d_glass)
 
         self.dist_bott_to_poles_air = (self.d_glass + self.d_oil - self.diam_bead / 2) / 1000.0
         self.dist_bott_to_poles_oil_glass = (self.d_glass / self.n_glass
