@@ -14,7 +14,7 @@ import math
 spim_box_big = 'TRUE'
 show_plots = 'FALSE'
 path_file = 'D:\\calibration\\'
-name = 'noam_0A4_290819_mod.dat'
+name = 'noam_1A_171019_mod.csv'
 
 
 # convert inputs to floats. If inputs are not numbers, then leave them unchanged
@@ -55,8 +55,11 @@ def conv_to_sublist(data_in, cond, index_col):
 # considering as relevant only the trajectories longer than a given number of seconds
 def traject_detection(data_in):
     if len(data_in[0]) != 0:
-        time_bet_jumps = 1.5
-        no_pct_traj = 15
+        #time_bet_jumps = 1.5
+        #no_pct_traj = 15
+        #fr293 edit to increase time
+        time_bet_jumps = 5
+        no_pct_traj = 50
 
         traject = 1
         index_traject = []

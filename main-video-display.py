@@ -3883,7 +3883,9 @@ class PySideCam(QtGui.QWidget):
         self.cal_xc1_trans = [(self.center_x - self.origin_x) / self.conv_um_pix]
         self.cal_yc1_trans = [(self.center_y - self.origin_y) / self.conv_um_pix]
         self.cal_zb_oil_trans = [(self.val_coord_z_bead - self.z_c_oil) * 1000.0]
-        self.cal_zb_air_trans = [((self.val_coord_z_bead * self.n_oil)- self.z_c_air)*1000]
+        # old incorrect version, not accounting correctly for refreactive mismatch factors
+        # self.cal_zb_air_trans = [((self.val_coord_z_bead * self.n_oil) - self.z_c_air)*1000]
+        self.cal_zb_air_trans = [(((self.n_oil * (self.val_coord_z_bead - self.z_bead_bottom)) - ((self.n_oil/self.n_glass) * self.d_glass) + (self.diam_bead / 2)) - (self.dist_bott_to_poles_air - self.dist_centre_to_poles_air)) * 1000]
         self.cal_exp_index = [self.th_exp_dir.actual_index]
         self.cal_exp_go_away = [str(self.th_exp_dir.go_away_from_origin)[0]]
 
@@ -3911,8 +3913,8 @@ class PySideCam(QtGui.QWidget):
         self.cal_config_psw.append(self.config_curr)
         self.cal_xc1_trans.append((self.center_x - self.origin_x) / self.conv_um_pix)
         self.cal_yc1_trans.append((self.center_y - self.origin_y) / self.conv_um_pix)
-        self.cal_zb_oil_trans.append((self.z_c_oil - self.val_coord_z_bead) * 1000.0)
-        self.cal_zb_air_trans.append((self.z_c_oil - self.val_coord_z_bead) * 1000.0 * self.n_oil)
+        self.cal_zb_oil_trans.append((self.val_coord_z_bead - self.z_c_oil) * 1000.0)
+        self.cal_zb_air_trans.append((((self.n_oil * (self.val_coord_z_bead - self.z_bead_bottom)) - ((self.n_oil/self.n_glass) * self.d_glass) + (self.diam_bead / 2)) - (self.dist_bott_to_poles_air - self.dist_centre_to_poles_air)) * 1000)
         self.cal_exp_index.append(self.th_exp_dir.actual_index)
         self.cal_exp_go_away.append(str(self.th_exp_dir.go_away_from_origin)[0])
 
@@ -3937,9 +3939,9 @@ class PySideCam(QtGui.QWidget):
         if name_save == '':
             name_save = '_default'
 
-        path_file_3 = path_file + name_save + '_exp.dat'
-        path_file_2 = path_file + name_save + '_mod.dat'
-        path_file = path_file + name_save + '_raw.dat'
+        path_file_3 = path_file + name_save + '_exp.csv'
+        path_file_2 = path_file + name_save + '_mod.csv'
+        path_file = path_file + name_save + '_raw.csv'
 
         if self.th_exp_dir.flag_running == 'T':
             f_name_3 = open(path_file_3, 'w')
@@ -3985,8 +3987,9 @@ class PySideCam(QtGui.QWidget):
         cal_config_psw_new = self.config_curr
         cal_xc1_trans_new = (self.center_x - self.origin_x) / self.conv_um_pix
         cal_yc1_trans_new = (self.center_y - self.origin_y) / self.conv_um_pix
-        cal_zb_oil_trans_new = (self.z_c_oil - self.val_coord_z_bead) * 1000.0
-        cal_zb_air_trans_new = (self.z_c_oil - self.val_coord_z_bead) * 1000.0 * self.n_oil
+        cal_zb_oil_trans_new = (self.val_coord_z_bead - self.z_c_oil) * 1000.0
+        #fr293 comment this does the first value in the file
+        cal_zb_air_trans_new = (((self.n_oil * (self.val_coord_z_bead - self.z_bead_bottom)) - (self.dist_bott_to_poles_air - self.dist_centre_to_poles_air)) * 1000)
         cal_exp_index_new = self.th_exp_dir.actual_index
         cal_exp_go_away_new = str(self.th_exp_dir.go_away_from_origin)[0]
 
@@ -4053,9 +4056,9 @@ class PySideCam(QtGui.QWidget):
         if name_save == '':
             name_save = '_default'
 
-        path_file_3 = path_file + name_save + '_exp.dat'
-        path_file_2 = path_file + name_save + '_mod.dat'
-        path_file = path_file + name_save + '_raw.dat'
+        path_file_3 = path_file + name_save + '_exp.csv'
+        path_file_2 = path_file + name_save + '_mod.csv'
+        path_file = path_file + name_save + '_raw.csv'
 
         if self.th_exp_dir.flag_running == 'T':
             f_name_3 = open(path_file_3, 'a')
@@ -4083,8 +4086,18 @@ class PySideCam(QtGui.QWidget):
         cal_config_psw_new = self.config_curr
         cal_xc1_trans_new = (self.center_x - self.origin_x) / self.conv_um_pix
         cal_yc1_trans_new = (self.center_y - self.origin_y) / self.conv_um_pix
-        cal_zb_oil_trans_new = (self.z_c_oil - self.val_coord_z_bead) * 1000.0
-        cal_zb_air_trans_new = (self.z_c_oil - self.val_coord_z_bead) * 1000.0 * self.n_oil
+        cal_zb_oil_trans_new = (self.val_coord_z_bead - self.z_c_oil) * 1000.0
+        # fr293 comment: this does all subsequent values in the file
+        cal_zb_air_trans_new = (((self.n_oil * (self.val_coord_z_bead - self.z_bead_bottom)) - (self.dist_bott_to_poles_air - self.dist_centre_to_poles_air)) * 1000)
+        print('bead height')
+        print((self.n_oil * (self.val_coord_z_bead - self.z_bead_bottom)))
+        print('glass factor')
+        print(((1 - (self.n_oil/self.n_glass)) * self.d_glass) / 1000)
+        print('bead factor')
+        print(self.diam_bead / 2000)
+        print('offset')
+        print((self.dist_bott_to_poles_air - self.dist_centre_to_poles_air))
+
         cal_exp_index_new = self.th_exp_dir.actual_index
         cal_exp_go_away_new = str(self.th_exp_dir.go_away_from_origin)[0]
 
@@ -4147,9 +4160,9 @@ class PySideCam(QtGui.QWidget):
         path_file = 'D:\\calibration\\'
         name_save = self.txt_plots_name_fileout.text()
 
-        path_file_3 = path_file + name_save + '_exp.dat'
-        path_file_2 = path_file + name_save + '_mod.dat'
-        path_file = path_file + name_save + '_raw.dat'
+        path_file_3 = path_file + name_save + '_exp.csv'
+        path_file_2 = path_file + name_save + '_mod.csv'
+        path_file = path_file + name_save + '_raw.csv'
 
         if self.th_exp_dir.flag_running == 'T':
             f_name_3 = open(path_file_3, 'w')
@@ -4440,17 +4453,17 @@ class PySideCam(QtGui.QWidget):
         self.n_oil = 1.403
         self.n_glass = 1.474
 
-        self.z_bead_bottom_air = (self.z_bead_bottom * self.n_oil) + ((1 - (self.n_oil / self.n_glass)) * (self.d_glass / 1000))
-        self.dist_bott_to_poles_air = (self.d_glass + self.d_oil - self.diam_bead / 2) / 1000.0
-        self.z_top_poles_air = self.z_bead_bottom_air + round(self.dist_bott_to_poles_air, 5)
-        self.dist_centre_to_poles_air = (self.d_glass + self.d_oil / 2.0) / 1000.0
+        # fr293 edited version, clarifying logic and giving explicit air referenced values
+        self.dist_bott_to_poles_air = (self.d_glass + self.d_oil - (self.diam_bead / 2)) / 1000.0
+        self.z_top_poles_air = self.z_bead_bottom + round(self.dist_bott_to_poles_air, 5)
+        self.dist_centre_to_poles_air = (self.d_glass + (self.d_oil / 2.0)) / 1000.0
         self.z_c_air = round(self.z_top_poles_air - self.dist_centre_to_poles_air, 5)
 
         self.z_bead_bottom = self.ctrl_plots_z_bead_bottom.value()
         self.dist_bott_to_poles_oil_glass = (self.d_glass / self.n_glass + (
                     self.d_oil - self.diam_bead / 2) / self.n_oil) / 1000.0
         self.z_top_poles = self.z_bead_bottom + round(self.dist_bott_to_poles_oil_glass, 5)
-        self.dist_centre_to_poles_oil = (self.d_glass / self.n_glass + self.d_oil / 2.0 / self.n_oil) / 1000.0
+        self.dist_centre_to_poles_oil = ((self.d_glass / self.n_glass) + ((self.d_oil / 2.0) / self.n_oil)) / 1000.0
         self.z_c_oil = round(self.z_top_poles - self.dist_centre_to_poles_oil, 5)
 
         self.lab_plots_z_cent_oil.setText(str(self.z_c_oil))
@@ -4468,14 +4481,6 @@ class PySideCam(QtGui.QWidget):
         self.lab_plots_z_spim_max_air.setText(str(self.z_max_spim_air))
         self.lab_plots_z_spim_min_oil.setText(str(self.z_min_spim_oil))
         self.lab_plots_z_spim_max_oil.setText(str(self.z_max_spim_oil))
-
-        print self.z_bead_bottom_air
-        print self.z_bead_bottom
-        print self.dist_bott_to_poles_air
-        print self.z_top_poles_air
-        print self.dist_centre_to_poles_air
-        print self.z_c_air
-        print 'pong'
 
         # print self.dist_bott_to_poles_air
         # print self.dist_bott_to_poles_oil_glass
@@ -4549,6 +4554,7 @@ class PySideCam(QtGui.QWidget):
 
         if float_bool == True:
             self.temp_C = round(float(param_temp), 1)
+
 
     def temperature_display2(self, param_temp):
         self.lab_temperature_coil.setText(param_temp)
@@ -5324,7 +5330,7 @@ class PySideCam(QtGui.QWidget):
     def butt_exp_save_file_Changed(self):
         path_file = os.getcwd() + '\\save\\'
         name_save = self.txt_exp_name_file.text()
-        path_file = path_file + name_save + '.dat'
+        path_file = path_file + name_save + '.csv'
         f_name = open(path_file, 'w')
         to_write = 'z,f1,f2,xc1,yc1,w1,h1,r1,xc2,yc2,w2,h2,r2'
         f_name.write(to_write + '\n')
@@ -5542,7 +5548,7 @@ class PySideCam(QtGui.QWidget):
             ffocus, xxc, yyc = bead_focus_stack(n_frame)
             # print ffocus, xxc, yyc
 
-            ffile_name = open(self.th_experiments.folder_path_c1[:-6] + '\\focus_stack.dat', 'a')
+            ffile_name = open(self.th_experiments.folder_path_c1[:-6] + '\\focus_stack.csv', 'a')
             ffile_name.write(
                 str(self.th_experiments.val_exper_real_time_z) + ',' + str(ffocus) + ',' + str(xxc) + ',' + str(
                     yyc) + '\n')

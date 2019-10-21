@@ -26,7 +26,7 @@ class Axis_GUI(QObject):
 
         self.value = ValueDisplayWidget(['Position','mm'],[7,4])
         self.velocity_value = ValueDisplayWidget(['Velocity','mm/s'],[7,4])
-        self.sbox = SpinBoxWidget(['Set Position','mm'],0,[-25,0.005,25],[7,4],self.set_position_changed,False)
+        self.sbox = SpinBoxWidget(['Set Position','mm'],0,[-30,0.005,30],[7,4],self.set_position_changed,False)
         self.zero_button = PushButtonWidget('Zero',self.zero)
         self.home_button = PushButtonWidget('Home',self.home)
         self.lock_tbutton = DoubleToggleButtonWidget(['Lock','Unlock'],self.lock_toggle)
