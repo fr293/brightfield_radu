@@ -13,8 +13,8 @@ import math
 # can introduce several flags to select only some classes of trajectory
 spim_box_big = 'TRUE'
 show_plots = 'FALSE'
-path_file = 'D:\\calibration\\'
-name = 'noam_1A_171019_mod.csv'
+path_file = 'D:\\sync_folder\\calibration\\'
+name = 'noam_0A1_181019_mod.csv'
 
 
 # convert inputs to floats. If inputs are not numbers, then leave them unchanged
@@ -416,7 +416,7 @@ def add_total_force(data_in):
 def save_to_file(results, full_path, str_config):
     data_transp_old = transp(results)
     data_transp = add_total_force(data_transp_old)
-    full_path_new = full_path[:-4] + '_I_config_' + str_config + '.dat'
+    full_path_new = full_path[:-4] + '_I_config_' + str_config + '.csv'
 
     file_link = open(full_path_new, 'wb')
     header = 'x(um), y(um), z(um), fx(nN), fy(nN), fz(nN), vx(um/s), vy(um/s), vz(um/s), Qtx, Qty,Qtz, F(nN)' + '\n'
