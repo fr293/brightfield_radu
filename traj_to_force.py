@@ -13,8 +13,8 @@ import math
 # can introduce several flags to select only some classes of trajectory
 spim_box_big = 'TRUE'
 show_plots = 'FALSE'
-path_file = 'D:\\sync_folder\\calibration\\'
-name = 'noam_0A1_181019_mod.csv'
+path_file = 'D:\\sweep_data_new\\9\\'
+name = 'noam_0A4_231019_mod.csv'
 
 
 # convert inputs to floats. If inputs are not numbers, then leave them unchanged
@@ -58,7 +58,7 @@ def traject_detection(data_in):
         #time_bet_jumps = 1.5
         #no_pct_traj = 15
         #fr293 edit to increase time
-        time_bet_jumps = 5
+        time_bet_jumps = 0.5
         no_pct_traj = 50
 
         traject = 1
@@ -91,6 +91,8 @@ def traject_detection(data_in):
             min_index = index_traject[jj][0]
             # do not consider short trajectories
             if (max_index - min_index) > no_pct_traj:
+                # fr293 edit to remove the first 20 positions
+                index_traject[jj][0] = index_traject[jj][0] + 40
                 index_traject_new.append(index_traject[jj])
 
         erase_traject = len(index_traject) - len(index_traject_new)
@@ -750,15 +752,15 @@ def traj_to_force():
     save_to_file(fdata_out_c2, path_file_input, '2')
     save_to_file(fdata_out_c3, path_file_input, '3')
     save_to_file(fdata_out_c4, path_file_input, '4')
-    save_to_file(fdata_out_c5, path_file_input, '5')
-    save_to_file(fdata_out_c6, path_file_input, '6')
+    #save_to_file(fdata_out_c5, path_file_input, '5')
+    #save_to_file(fdata_out_c6, path_file_input, '6')
 
     plot_forces(fdata_out_c1, 'West')
     plot_forces(fdata_out_c2, 'South')
     plot_forces(fdata_out_c3, 'North')
     plot_forces(fdata_out_c4, 'East')
-    plot_forces(fdata_out_c5, 'Down')
-    plot_forces(fdata_out_c6, 'Up')
+    #plot_forces(fdata_out_c5, 'Down')
+    #plot_forces(fdata_out_c6, 'Up')
 
     print "finished calculating force data"
     return
