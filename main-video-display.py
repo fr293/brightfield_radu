@@ -1,5 +1,4 @@
-impo
-rt sys
+import sys
 import time
 import numpy
 import numpy as np
