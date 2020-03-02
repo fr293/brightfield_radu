@@ -46,7 +46,7 @@ mutex = QMutex()
 # OPEN SERIAL ACTUATOR
 try:
     ser = serial.Serial('COM3', 57600, timeout=1)
-    ser.setXonXoff(True)
+    #ser.setXonXoff(True)
     atexit.register(ser.close)
     print "serial open"
 except serial.SerialException:
